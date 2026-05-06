@@ -1,6 +1,6 @@
 // main.js - The Core Game Loop
 
-// 1. Create aliases for Matter.js modules so we don't have to type "Matter." every time
+// 1. Create aliases for Matter.js modules
 const Engine = Matter.Engine,
       Render = Matter.Render,
       Runner = Matter.Runner,
@@ -16,7 +16,7 @@ const render = Render.create({
     options: {
         width: window.innerWidth,
         height: window.innerHeight,
-        wireframes: false, // Set to true later if we need to debug the collision boxes
+        wireframes: false, 
         background: 'transparent'
     }
 });
@@ -24,11 +24,11 @@ const render = Render.create({
 // 4. Run the renderer
 Render.run(render);
 
-// 5. Create and run the runner (The Heartbeat that updates physics frame-by-frame)
+// 5. Create and run the runner 
 const runner = Runner.create();
 Runner.run(runner, engine);
 
-// 6. Make it mobile-friendly: Resize the canvas if the device orientation changes
+// 6. Make it mobile-friendly: Resize the canvas on orientation change
 window.addEventListener('resize', () => {
     render.canvas.width = window.innerWidth;
     render.canvas.height = window.innerHeight;
