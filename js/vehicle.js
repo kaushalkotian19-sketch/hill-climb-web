@@ -10,7 +10,7 @@ class Vehicle {
         // --- THE GARAGE (Vehicle Stats Database) ---
         const stats = {
             jeep: {
-                width: 150, height: 30, weight: 0.002, 
+                width: 240, height: 40, weight: 0.002, // Increased width and height to match your image
                 wheelSize: 25, wheelGrip: 1.0,         
                 suspensionStiffness: 0.15, suspensionDamping: 0.05,
                 power: 0.08
@@ -36,7 +36,7 @@ class Vehicle {
             render: { 
                 sprite: { 
                     texture: 'assets/chassis.png', 
-                    xScale: 0.3, // Scaled for your specific image 
+                    xScale: 0.3, 
                     yScale: 0.3 
                 } 
             } 
@@ -68,7 +68,7 @@ class Vehicle {
             render: { 
                 sprite: { 
                     texture: 'assets/wheel.png', 
-                    xScale: 0.06, // Scaled for your specific image
+                    xScale: 0.06, 
                     yScale: 0.06 
                 } 
             }  
@@ -78,11 +78,13 @@ class Vehicle {
         // 🔧 TUNE YOUR WHEEL ALIGNMENT HERE 🔧
         // ==========================================
         
-        // LEFT/RIGHT SPACING: Lower the '25' to push wheels further apart.
-        const wheelOffset = this.config.width / 2 - 25; 
+        // Pushes the wheels outward toward the bumpers. 
+        // Increase to push wider, decrease to pull closer together.
+        const wheelOffset = 85; 
         
-        // UP/DOWN HEIGHT: Increase the '+ 20' to push wheels lower down to the ground.
-        const wheelHeight = startY + 20; 
+        // Drops the wheels lower down to the ground so the chassis doesn't scrape.
+        // Increase the '35' (e.g., to 45) to push wheels lower and lift the car up.
+        const wheelHeight = startY + 35; 
 
         // ==========================================
 
