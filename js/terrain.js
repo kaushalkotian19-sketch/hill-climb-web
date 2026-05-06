@@ -1,31 +1,61 @@
-// terrain.js - Procedural Hill Generation
+// terrain.js - Smooth Procedural Hill Generation
 
 const Bodies = Matter.Bodies;
+// We don't need to re-declare Composite since it's in main.js, but it's safe to use the global one
 
-// We will store all the tiny ground pieces in this array
 const terrainParts = [];
 
-const segmentWidth = 40;     // How wide each chunk of ground is
-const totalSegments = 300;   // How long the track is
+const segmentWidth = 40;     
+const totalSegments = 300;   
 const baseHeight = window.innerHeight - 100;
 
-// Loop to create hundreds of connected rectangles
 for (let i = 0; i < totalSegments; i++) {
-    const xPos = i * segmentWidth;
-    
-    // THE MAGIC MATH
-    const waveHeight = Math.sin(i * 0.15) * 150; 
-    const yPos = baseHeight + waveHeight;
+    const x1 = i * segmentWidth;
+    const y1 = baseHeight + Math.sin(i * 0.15) * 150;
 
-    // Create a tall, static rectangle for this segment
-    const chunk = Bodies.rectangle(xPos, yPos + 300, segmentWidth + 2, 600, { 
-        isStatic: true, 
-        friction: 0.9, 
-        render: { fillStyle: '#2e8b57' } // Grassy green
-    });
+    const x2 = (i + 1) * segmentWidth;
+    const y2 = baseHeight + Math.sin((i + 1) * 0.15) * 150;
+
+    const midX = (x1 + x2) / 2;
+    const midY = (y1 + y2) / 2;
+
+    const distance = Math.hypot(x2 - x1, y2 - y1); 
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+
+    const chunk = Bodies.rectangle(
+        midX, midY + 200, distance + 2, 400,
+        { 
+            isStatic: true, 
+            angle: angle, 
+            friction: 0.9, 
+            label: 'ground', 
+            render: { fillStyle: '#2e8b57' } 
+        }
+    );
 
     terrainParts.push(chunk);
+
+    // Spawn Coins
+    if (i % 10 === 0 && i > 5) {
+        const coin = Bodies.circle(midX, midY - 40, 15, {
+            isStatic: true, 
+            isSensor: true, 
+            label: 'coin', 
+            render: { fillStyle: '#FFD700' } 
+        });
+        terrainParts.push(coin);
+    }
+
+    // Spawn Fuel Canisters
+    if (i % 35 === 0 && i > 10) {
+        const fuelCan = Bodies.rectangle(midX, midY - 50, 30, 40, {
+            isStatic: true, 
+            isSensor: true, 
+            label: 'fuel', 
+            render: { fillStyle: '#ff0000' } 
+        });
+        terrainParts.push(fuelCan);
+    }
 }
 
-// Add all the terrain chunks into the world at once
-Composite.add(engine.world, terrainParts);
+Matter.Composite.add(engine.world, terrainParts);
