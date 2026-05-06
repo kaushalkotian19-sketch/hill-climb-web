@@ -1,8 +1,6 @@
 // terrain.js - Smooth Procedural Hill Generation
 
 const Bodies = Matter.Bodies;
-// We don't need to re-declare Composite since it's in main.js, but it's safe to use the global one
-
 const terrainParts = [];
 
 const segmentWidth = 40;     
@@ -35,13 +33,19 @@ for (let i = 0; i < totalSegments; i++) {
 
     terrainParts.push(chunk);
 
-    // Spawn Coins
+    // Spawn Graphical Coins
     if (i % 10 === 0 && i > 5) {
         const coin = Bodies.circle(midX, midY - 40, 15, {
             isStatic: true, 
             isSensor: true, 
             label: 'coin', 
-            render: { fillStyle: '#FFD700' } 
+            render: { 
+                sprite: {
+                    texture: 'assets/coin.png',
+                    xScale: 0.5, 
+                    yScale: 0.5
+                } 
+            } 
         });
         terrainParts.push(coin);
     }
@@ -52,7 +56,7 @@ for (let i = 0; i < totalSegments; i++) {
             isStatic: true, 
             isSensor: true, 
             label: 'fuel', 
-            render: { fillStyle: '#ff0000' } 
+            render: { fillStyle: '#ff0000' } // Keeping this as a red box for now unless you have a fuel.png!
         });
         terrainParts.push(fuelCan);
     }
