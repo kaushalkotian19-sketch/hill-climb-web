@@ -1,1 +1,26 @@
+/* Reset margins and prevent scrolling */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Prevents scrollbars */
+    background-color: #87CEEB; /* A nice sky blue background */
+    touch-action: none; /* Prevents zooming on mobile taps */
+}
+
+#game-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+canvas {
+    display: block;
+}
