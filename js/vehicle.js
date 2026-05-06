@@ -1,24 +1,39 @@
 // vehicle.js - The Bouncy Car Physics, Controls, and Camera
 
 const Constraint = Matter.Constraint;
-// Add Render reference here for the camera to use later
 const VehicleRender = Matter.Render; 
 
-// 1. Create a Collision Group
 const carGroup = Matter.Body.nextGroup(true);
 
-// 2. Set the starting drop position
-const startX = 200; // Moved slightly left so you can see it drop onto the first hill
+const startX = 200; 
 const startY = 100; 
 
-// 3. The Chassis
+// The Chassis
 const chassis = Bodies.rectangle(startX, startY, 150, 30, { 
     collisionFilter: { group: carGroup },
     density: 0.002, 
     render: { fillStyle: '#ff0000' } 
 });
 
-// 4. The Wheels
+// The Driver's Head and Neck
+const head = Bodies.circle(startX, startY - 30, 15, {
+    collisionFilter: { group: carGroup },
+    density: 0.001,
+    label: 'head', 
+    render: { fillStyle: '#ffcc99' } 
+});
+
+const neck = Constraint.create({
+    bodyA: chassis,
+    pointA: { x: 0, y: -15 }, 
+    bodyB: head,
+    pointB: { x: 0, y: 0 },
+    stiffness: 1, 
+    length: 20,
+    render: { visible: false } 
+});
+
+// The Wheels
 const wheelOptions = {
     collisionFilter: { group: carGroup },
     friction: 0.8,    
@@ -26,10 +41,10 @@ const wheelOptions = {
     render: { fillStyle: '#333333' } 
 };
 
-const wheelA = Bodies.circle(startX - 50, startY + 20, 25, wheelOptions); // Back wheel
-const wheelB = Bodies.circle(startX + 50, startY + 20, 25, wheelOptions); // Front wheel
+const wheelA = Bodies.circle(startX - 50, startY + 20, 25, wheelOptions); 
+const wheelB = Bodies.circle(startX + 50, startY + 20, 25, wheelOptions); 
 
-// 5. The Suspension
+// The Suspension
 const axelA = Constraint.create({
     bodyA: chassis,
     pointA: { x: -50, y: 15 }, 
@@ -50,16 +65,15 @@ const axelB = Constraint.create({
     render: { visible: true, strokeStyle: '#ffffff' }
 });
 
-// 6. Package it all together
-const car = Composite.create({
-    bodies: [chassis, wheelA, wheelB],
-    constraints: [axelA, axelB]
+// Package it all together
+const car = Matter.Composite.create({
+    bodies: [chassis, wheelA, wheelB, head],
+    constraints: [axelA, axelB, neck]
 });
 
-// 7. Add the finished car to the world
-Composite.add(engine.world, car);
+Matter.Composite.add(engine.world, car);
 
-// 8. Driving Controls
+// Driving Controls
 const keys = { gas: false, brake: false };
 
 window.addEventListener('keydown', (event) => {
@@ -72,21 +86,35 @@ window.addEventListener('keyup', (event) => {
     if (event.key === 'ArrowLeft' || event.key === 'a') keys.brake = false;
 });
 
-// 9. Apply Engine Power and Camera Tracking
+const btnGas = document.getElementById('btn-gas');
+const btnBrake = document.getElementById('btn-brake');
+
+btnGas.addEventListener('touchstart', (e) => { e.preventDefault(); keys.gas = true; });
+btnGas.addEventListener('touchend', (e) => { e.preventDefault(); keys.gas = false; });
+btnGas.addEventListener('mousedown', (e) => { keys.gas = true; }); 
+btnGas.addEventListener('mouseup', (e) => { keys.gas = false; });
+
+btnBrake.addEventListener('touchstart', (e) => { e.preventDefault(); keys.brake = true; });
+btnBrake.addEventListener('touchend', (e) => { e.preventDefault(); keys.brake = false; });
+btnBrake.addEventListener('mousedown', (e) => { keys.brake = true; });
+btnBrake.addEventListener('mouseup', (e) => { keys.brake = false; });
+
+// Apply Engine Power and Camera Tracking
 Matter.Events.on(engine, 'beforeUpdate', () => {
     const enginePower = 0.05; 
 
-    if (keys.gas) {
-        wheelA.torque = enginePower;
-        wheelB.torque = enginePower;
-    }
-    
-    if (keys.brake) {
-        wheelA.torque = -enginePower;
-        wheelB.torque = -enginePower;
+    if (window.gameFuel > 0 && !window.isGameOver) {
+        if (keys.gas) {
+            wheelA.torque = enginePower;
+            wheelB.torque = enginePower;
+        }
+        
+        if (keys.brake) {
+            wheelA.torque = -enginePower;
+            wheelB.torque = -enginePower;
+        }
     }
 
-    // 10. Camera Tracking
     VehicleRender.lookAt(render, {
         min: { x: chassis.position.x - window.innerWidth / 2, y: chassis.position.y - window.innerHeight / 2 + 100 },
         max: { x: chassis.position.x + window.innerWidth / 2, y: chassis.position.y + window.innerHeight / 2 + 100 }
