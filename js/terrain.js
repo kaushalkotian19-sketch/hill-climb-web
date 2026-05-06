@@ -1,19 +1,31 @@
-// terrain.js - The Ground Logic
+// terrain.js - Procedural Hill Generation
 
 const Bodies = Matter.Bodies;
 
-// Create a flat ground rectangle
-// Parameters: x-coordinate, y-coordinate, width, height
-const ground = Bodies.rectangle(
-    window.innerWidth / 2,           // Center it horizontally
-    window.innerHeight - 50,         // Place it near the bottom of the screen
-    window.innerWidth,               // Make it as wide as the screen
-    100,                             // 100 pixels thick
-    { 
-        isStatic: true,              // CRITICAL: This stops the ground from falling down due to gravity!
-        render: { fillStyle: '#2e8b57' } // Give it a nice grassy green color
-    } 
-);
+// We will store all the tiny ground pieces in this array
+const terrainParts = [];
 
-// Add the ground to our physics world so the engine knows it exists
-Composite.add(engine.world, [ground]);
+const segmentWidth = 40;     // How wide each chunk of ground is
+const totalSegments = 300;   // How long the track is
+const baseHeight = window.innerHeight - 100;
+
+// Loop to create hundreds of connected rectangles
+for (let i = 0; i < totalSegments; i++) {
+    const xPos = i * segmentWidth;
+    
+    // THE MAGIC MATH
+    const waveHeight = Math.sin(i * 0.15) * 150; 
+    const yPos = baseHeight + waveHeight;
+
+    // Create a tall, static rectangle for this segment
+    const chunk = Bodies.rectangle(xPos, yPos + 300, segmentWidth + 2, 600, { 
+        isStatic: true, 
+        friction: 0.9, 
+        render: { fillStyle: '#2e8b57' } // Grassy green
+    });
+
+    terrainParts.push(chunk);
+}
+
+// Add all the terrain chunks into the world at once
+Composite.add(engine.world, terrainParts);
