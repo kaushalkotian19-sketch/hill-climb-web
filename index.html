@@ -10,6 +10,24 @@
 
     <div id="game-container"></div>
 
+    <div id="score-display">Coins: 0</div>
+    <div id="bank-display">Bank: 0</div>
+
+    <div id="fuel-container">
+        <div id="fuel-bar"></div>
+    </div>
+
+    <div id="ui-layer">
+        <button id="btn-brake">BRAKE</button>
+        <button id="btn-gas">GAS</button>
+    </div>
+
+    <div id="game-over-screen" style="display: none;">
+        <h1 id="game-over-title">CRASHED!</h1>
+        <p id="final-score-text">Final Coins: 0</p>
+        <button id="btn-restart">TRY AGAIN</button>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 
     <script src="js/main.js"></script>
