@@ -7,6 +7,7 @@ const VehicleRender = Matter.Render;
 class Vehicle {
     constructor(startX, startY, vehicleType) {
         
+        // --- THE GARAGE (Vehicle Stats Database) ---
         const stats = {
             jeep: {
                 width: 150, height: 30, weight: 0.002, 
@@ -25,43 +26,88 @@ class Vehicle {
         this.config = stats[vehicleType] || stats.jeep;
         this.enginePower = this.config.power;
 
+        // --- BUILD THE PHYSICAL PARTS ---
         const carGroup = Matter.Body.nextGroup(true);
 
+        // The Chassis (Graphical)
         this.chassis = Matter.Bodies.rectangle(startX, startY, this.config.width, this.config.height, { 
-            collisionFilter: { group: carGroup }, density: this.config.weight, 
-            render: { sprite: { texture: 'assets/chassis.png', xScale: 0.3, yScale: 0.3 } } 
+            collisionFilter: { group: carGroup }, 
+            density: this.config.weight, 
+            render: { 
+                sprite: { 
+                    texture: 'assets/chassis.png', 
+                    xScale: 0.3, // Scaled for your specific image 
+                    yScale: 0.3 
+                } 
+            } 
         });
 
+        // The Driver's Head & Neck (Invisible hitbox for crashes)
         this.head = Matter.Bodies.circle(startX, startY - 30, 15, {
-            collisionFilter: { group: carGroup }, density: 0.001, label: 'head', 
+            collisionFilter: { group: carGroup }, 
+            density: 0.001, 
+            label: 'head', 
             render: { fillStyle: 'transparent' } 
         });
 
         const neck = Constraint.create({
-            bodyA: this.chassis, pointA: { x: 0, y: -this.config.height / 2 }, 
-            bodyB: this.head, pointB: { x: 0, y: 0 }, stiffness: 1, length: 20, render: { visible: false } 
+            bodyA: this.chassis, 
+            pointA: { x: 0, y: -this.config.height / 2 }, 
+            bodyB: this.head, 
+            pointB: { x: 0, y: 0 }, 
+            stiffness: 1, 
+            length: 20, 
+            render: { visible: false } 
         });
 
+        // The Wheels (Graphical)
         const wheelOptions = {
-            collisionFilter: { group: carGroup }, friction: this.config.wheelGrip, restitution: 0.1, 
-            render: { sprite: { texture: 'assets/wheel.png', xScale: 0.06, yScale: 0.06 } }  
+            collisionFilter: { group: carGroup }, 
+            friction: this.config.wheelGrip, 
+            restitution: 0.1, 
+            render: { 
+                sprite: { 
+                    texture: 'assets/wheel.png', 
+                    xScale: 0.06, // Scaled for your specific image
+                    yScale: 0.06 
+                } 
+            }  
         };
 
+        // ==========================================
+        // 🔧 TUNE YOUR WHEEL ALIGNMENT HERE 🔧
+        // ==========================================
+        
+        // LEFT/RIGHT SPACING: Lower the '25' to push wheels further apart.
         const wheelOffset = this.config.width / 2 - 25; 
         
-        this.wheelA = Matter.Bodies.circle(startX - wheelOffset, startY + 20, this.config.wheelSize, wheelOptions); 
-        this.wheelB = Matter.Bodies.circle(startX + wheelOffset, startY + 20, this.config.wheelSize, wheelOptions); 
+        // UP/DOWN HEIGHT: Increase the '+ 20' to push wheels lower down to the ground.
+        const wheelHeight = startY + 20; 
 
+        // ==========================================
+
+        this.wheelA = Matter.Bodies.circle(startX - wheelOffset, wheelHeight, this.config.wheelSize, wheelOptions); 
+        this.wheelB = Matter.Bodies.circle(startX + wheelOffset, wheelHeight, this.config.wheelSize, wheelOptions); 
+
+        // The Suspension
         const axelA = Constraint.create({
-            bodyA: this.chassis, pointA: { x: -wheelOffset, y: this.config.height / 2 }, 
-            bodyB: this.wheelA, stiffness: this.config.suspensionStiffness, damping: this.config.suspensionDamping,   
-            length: this.config.wheelSize + 10, render: { visible: false } 
+            bodyA: this.chassis, 
+            pointA: { x: -wheelOffset, y: this.config.height / 2 }, 
+            bodyB: this.wheelA, 
+            stiffness: this.config.suspensionStiffness, 
+            damping: this.config.suspensionDamping,   
+            length: this.config.wheelSize + 10, 
+            render: { visible: false } 
         });
 
         const axelB = Constraint.create({
-            bodyA: this.chassis, pointA: { x: wheelOffset, y: this.config.height / 2 },
-            bodyB: this.wheelB, stiffness: this.config.suspensionStiffness, damping: this.config.suspensionDamping,
-            length: this.config.wheelSize + 10, render: { visible: false } 
+            bodyA: this.chassis, 
+            pointA: { x: wheelOffset, y: this.config.height / 2 },
+            bodyB: this.wheelB, 
+            stiffness: this.config.suspensionStiffness, 
+            damping: this.config.suspensionDamping,
+            length: this.config.wheelSize + 10, 
+            render: { visible: false } 
         });
 
         this.composite = Matter.Composite.create({
@@ -70,9 +116,16 @@ class Vehicle {
         });
     }
 
+    // Make the car drive
     drive(keys) {
-        if (keys.gas) { this.wheelA.torque = this.enginePower; this.wheelB.torque = this.enginePower; }
-        if (keys.brake) { this.wheelA.torque = -this.enginePower; this.wheelB.torque = -this.enginePower; }
+        if (keys.gas) { 
+            this.wheelA.torque = this.enginePower; 
+            this.wheelB.torque = this.enginePower; 
+        }
+        if (keys.brake) { 
+            this.wheelA.torque = -this.enginePower; 
+            this.wheelB.torque = -this.enginePower; 
+        }
     }
 }
 
