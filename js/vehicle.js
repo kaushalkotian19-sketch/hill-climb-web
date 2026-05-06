@@ -38,18 +38,18 @@ class Vehicle {
             render: { 
                 sprite: {
                     texture: 'assets/chassis.png',
-                    xScale: 1, 
-                    yScale: 1
+                    xScale: 0.15, // Scaled down for high-res images
+                    yScale: 0.15
                 } 
             } 
         });
 
-        // The Driver's Head & Neck
+        // The Driver's Head & Neck (Invisible hitbox for crashes)
         this.head = Matter.Bodies.circle(startX, startY - 30, 15, {
             collisionFilter: { group: carGroup },
             density: 0.001,
             label: 'head', 
-            render: { fillStyle: '#ffcc99' } 
+            render: { fillStyle: 'transparent' } // Hidden so it doesn't block your chassis graphic
         });
 
         const neck = Constraint.create({
@@ -70,8 +70,8 @@ class Vehicle {
             render: { 
                 sprite: {
                     texture: 'assets/wheel.png',
-                    xScale: 1, 
-                    yScale: 1
+                    xScale: 0.12, // Scaled down for high-res images
+                    yScale: 0.12
                 } 
             }  
         };
@@ -89,7 +89,7 @@ class Vehicle {
             stiffness: this.config.suspensionStiffness, 
             damping: this.config.suspensionDamping,   
             length: this.config.wheelSize + 10,      
-            render: { visible: true, strokeStyle: '#ffffff' } 
+            render: { visible: false } // Hidden so we don't see white lines over the graphics
         });
 
         const axelB = Constraint.create({
@@ -99,7 +99,7 @@ class Vehicle {
             stiffness: this.config.suspensionStiffness,
             damping: this.config.suspensionDamping,
             length: this.config.wheelSize + 10,
-            render: { visible: true, strokeStyle: '#ffffff' }
+            render: { visible: false } // Hidden
         });
 
         this.composite = Matter.Composite.create({
