@@ -1,79 +1,136 @@
-// vehicle.js - The Bouncy Car Physics, Controls, and Camera
+// vehicle.js - Reusable Vehicle Blueprint and Controls
 
 const Constraint = Matter.Constraint;
 const VehicleRender = Matter.Render; 
 
-const carGroup = Matter.Body.nextGroup(true);
+// 1. THE BLUEPRINT (JavaScript Class)
+class Vehicle {
+    constructor(startX, startY, vehicleType) {
+        
+        // --- THE GARAGE (Vehicle Stats Database) ---
+        const stats = {
+            jeep: {
+                width: 150, height: 30, weight: 0.002, 
+                wheelSize: 25, wheelGrip: 1.0,         
+                suspensionStiffness: 0.15, suspensionDamping: 0.05,
+                power: 0.08,                           
+                color: '#ff0000'
+            },
+            monster_truck: {
+                width: 200, height: 40, weight: 0.005, 
+                wheelSize: 45, wheelGrip: 1.2,         
+                suspensionStiffness: 0.2, suspensionDamping: 0.1, 
+                power: 0.15,                           
+                color: '#0000ff'
+            }
+        };
+        
+        this.config = stats[vehicleType] || stats.jeep;
+        this.enginePower = this.config.power;
 
-const startX = 200; 
-const startY = 100; 
+        // --- BUILD THE PHYSICAL PARTS ---
+        const carGroup = Matter.Body.nextGroup(true);
 
-// The Chassis
-const chassis = Bodies.rectangle(startX, startY, 150, 30, { 
-    collisionFilter: { group: carGroup },
-    density: 0.002, 
-    render: { fillStyle: '#ff0000' } 
-});
+        // The Chassis (Graphical)
+        this.chassis = Matter.Bodies.rectangle(startX, startY, this.config.width, this.config.height, { 
+            collisionFilter: { group: carGroup },
+            density: this.config.weight, 
+            render: { 
+                sprite: {
+                    texture: 'assets/chassis.png',
+                    xScale: 1, 
+                    yScale: 1
+                } 
+            } 
+        });
 
-// The Driver's Head and Neck
-const head = Bodies.circle(startX, startY - 30, 15, {
-    collisionFilter: { group: carGroup },
-    density: 0.001,
-    label: 'head', 
-    render: { fillStyle: '#ffcc99' } 
-});
+        // The Driver's Head & Neck
+        this.head = Matter.Bodies.circle(startX, startY - 30, 15, {
+            collisionFilter: { group: carGroup },
+            density: 0.001,
+            label: 'head', 
+            render: { fillStyle: '#ffcc99' } 
+        });
 
-const neck = Constraint.create({
-    bodyA: chassis,
-    pointA: { x: 0, y: -15 }, 
-    bodyB: head,
-    pointB: { x: 0, y: 0 },
-    stiffness: 1, 
-    length: 20,
-    render: { visible: false } 
-});
+        const neck = Constraint.create({
+            bodyA: this.chassis,
+            pointA: { x: 0, y: -this.config.height / 2 }, 
+            bodyB: this.head,
+            pointB: { x: 0, y: 0 },
+            stiffness: 1, 
+            length: 20,
+            render: { visible: false } 
+        });
 
-// The Wheels
-const wheelOptions = {
-    collisionFilter: { group: carGroup },
-    friction: 0.8,    
-    restitution: 0.1, 
-    render: { fillStyle: '#333333' } 
-};
+        // The Wheels (Graphical)
+        const wheelOptions = {
+            collisionFilter: { group: carGroup },
+            friction: this.config.wheelGrip,    
+            restitution: 0.1, 
+            render: { 
+                sprite: {
+                    texture: 'assets/wheel.png',
+                    xScale: 1, 
+                    yScale: 1
+                } 
+            }  
+        };
 
-const wheelA = Bodies.circle(startX - 50, startY + 20, 25, wheelOptions); 
-const wheelB = Bodies.circle(startX + 50, startY + 20, 25, wheelOptions); 
+        const wheelOffset = this.config.width / 2 - 25; 
+        
+        this.wheelA = Matter.Bodies.circle(startX - wheelOffset, startY + 20, this.config.wheelSize, wheelOptions); 
+        this.wheelB = Matter.Bodies.circle(startX + wheelOffset, startY + 20, this.config.wheelSize, wheelOptions); 
 
-// The Suspension
-const axelA = Constraint.create({
-    bodyA: chassis,
-    pointA: { x: -50, y: 15 }, 
-    bodyB: wheelA,
-    stiffness: 0.15, 
-    damping: 0.05,   
-    length: 35,      
-    render: { visible: true, strokeStyle: '#ffffff' } 
-});
+        // The Suspension
+        const axelA = Constraint.create({
+            bodyA: this.chassis,
+            pointA: { x: -wheelOffset, y: this.config.height / 2 }, 
+            bodyB: this.wheelA,
+            stiffness: this.config.suspensionStiffness, 
+            damping: this.config.suspensionDamping,   
+            length: this.config.wheelSize + 10,      
+            render: { visible: true, strokeStyle: '#ffffff' } 
+        });
 
-const axelB = Constraint.create({
-    bodyA: chassis,
-    pointA: { x: 50, y: 15 },
-    bodyB: wheelB,
-    stiffness: 0.15,
-    damping: 0.05,
-    length: 35,
-    render: { visible: true, strokeStyle: '#ffffff' }
-});
+        const axelB = Constraint.create({
+            bodyA: this.chassis,
+            pointA: { x: wheelOffset, y: this.config.height / 2 },
+            bodyB: this.wheelB,
+            stiffness: this.config.suspensionStiffness,
+            damping: this.config.suspensionDamping,
+            length: this.config.wheelSize + 10,
+            render: { visible: true, strokeStyle: '#ffffff' }
+        });
 
-// Package it all together
-const car = Matter.Composite.create({
-    bodies: [chassis, wheelA, wheelB, head],
-    constraints: [axelA, axelB, neck]
-});
+        this.composite = Matter.Composite.create({
+            bodies: [this.chassis, this.wheelA, this.wheelB, this.head],
+            constraints: [axelA, axelB, neck]
+        });
+    }
 
-Matter.Composite.add(engine.world, car);
+    drive(keys) {
+        if (keys.gas) {
+            this.wheelA.torque = this.enginePower;
+            this.wheelB.torque = this.enginePower;
+        }
+        if (keys.brake) {
+            this.wheelA.torque = -this.enginePower;
+            this.wheelB.torque = -this.enginePower;
+        }
+    }
+}
 
-// Driving Controls
+// ==========================================
+// 2. SPAWN THE PLAYER
+// ==========================================
+
+const playerCar = new Vehicle(200, 100, "jeep");
+Matter.Composite.add(engine.world, playerCar.composite);
+
+// ==========================================
+// 3. CONTROLS & GAME LOOP
+// ==========================================
+
 const keys = { gas: false, brake: false };
 
 window.addEventListener('keydown', (event) => {
@@ -99,24 +156,13 @@ btnBrake.addEventListener('touchend', (e) => { e.preventDefault(); keys.brake = 
 btnBrake.addEventListener('mousedown', (e) => { keys.brake = true; });
 btnBrake.addEventListener('mouseup', (e) => { keys.brake = false; });
 
-// Apply Engine Power and Camera Tracking
 Matter.Events.on(engine, 'beforeUpdate', () => {
-    const enginePower = 0.05; 
-
     if (window.gameFuel > 0 && !window.isGameOver) {
-        if (keys.gas) {
-            wheelA.torque = enginePower;
-            wheelB.torque = enginePower;
-        }
-        
-        if (keys.brake) {
-            wheelA.torque = -enginePower;
-            wheelB.torque = -enginePower;
-        }
+        playerCar.drive(keys); 
     }
 
     VehicleRender.lookAt(render, {
-        min: { x: chassis.position.x - window.innerWidth / 2, y: chassis.position.y - window.innerHeight / 2 + 100 },
-        max: { x: chassis.position.x + window.innerWidth / 2, y: chassis.position.y + window.innerHeight / 2 + 100 }
+        min: { x: playerCar.chassis.position.x - window.innerWidth / 2, y: playerCar.chassis.position.y - window.innerHeight / 2 + 100 },
+        max: { x: playerCar.chassis.position.x + window.innerWidth / 2, y: playerCar.chassis.position.y + window.innerHeight / 2 + 100 }
     });
 });
