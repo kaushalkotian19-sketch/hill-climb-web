@@ -1,45 +1,43 @@
-// vehicle.js - The Bouncy Car Physics
+// vehicle.js - The Bouncy Car Physics, Controls, and Camera
 
-// Pull in the Constraint module for our suspension springs
 const Constraint = Matter.Constraint;
+// Add Render reference here for the camera to use later
+const VehicleRender = Matter.Render; 
 
 // 1. Create a Collision Group
-// This is critical. It tells the engine that the wheels and chassis belong 
-// to the same object, so they don't violently collide with each other.
 const carGroup = Matter.Body.nextGroup(true);
 
-// 2. Set the starting drop position (Top center of the screen)
-const startX = window.innerWidth / 2;
+// 2. Set the starting drop position
+const startX = 200; // Moved slightly left so you can see it drop onto the first hill
 const startY = 100; 
 
-// 3. The Chassis (Car Body)
+// 3. The Chassis
 const chassis = Bodies.rectangle(startX, startY, 150, 30, { 
     collisionFilter: { group: carGroup },
-    density: 0.002, // Gives the car some weight so it pushes down on the springs
-    render: { fillStyle: '#ff0000' } // Classic red
+    density: 0.002, 
+    render: { fillStyle: '#ff0000' } 
 });
 
 // 4. The Wheels
 const wheelOptions = {
     collisionFilter: { group: carGroup },
-    friction: 0.8,    // High friction so the tires grip the terrain
-    restitution: 0.1, // A tiny bit of natural tire bounce
-    render: { fillStyle: '#333333' } // Dark grey tires
+    friction: 0.8,    
+    restitution: 0.1, 
+    render: { fillStyle: '#333333' } 
 };
 
 const wheelA = Bodies.circle(startX - 50, startY + 20, 25, wheelOptions); // Back wheel
 const wheelB = Bodies.circle(startX + 50, startY + 20, 25, wheelOptions); // Front wheel
 
-// 5. The Suspension (The Magic Part)
-// Constraints act as springs. We attach them from the chassis to the center of the wheels.
+// 5. The Suspension
 const axelA = Constraint.create({
     bodyA: chassis,
-    pointA: { x: -50, y: 15 }, // Attachment point on the chassis
+    pointA: { x: -50, y: 15 }, 
     bodyB: wheelA,
-    stiffness: 0.15, // The spring tension. Lower = softer, bouncier suspension
-    damping: 0.05,   // Shock absorbers. This stops the car from bouncing infinitely
-    length: 35,      // The resting length of the suspension
-    render: { visible: true, strokeStyle: '#ffffff' } // Draw a white line for the spring
+    stiffness: 0.15, 
+    damping: 0.05,   
+    length: 35,      
+    render: { visible: true, strokeStyle: '#ffffff' } 
 });
 
 const axelB = Constraint.create({
@@ -53,7 +51,6 @@ const axelB = Constraint.create({
 });
 
 // 6. Package it all together
-// We bundle the parts into a single "Composite" so the engine treats it as one vehicle
 const car = Composite.create({
     bodies: [chassis, wheelA, wheelB],
     constraints: [axelA, axelB]
@@ -61,3 +58,37 @@ const car = Composite.create({
 
 // 7. Add the finished car to the world
 Composite.add(engine.world, car);
+
+// 8. Driving Controls
+const keys = { gas: false, brake: false };
+
+window.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowRight' || event.key === 'd') keys.gas = true;
+    if (event.key === 'ArrowLeft' || event.key === 'a') keys.brake = true;
+});
+
+window.addEventListener('keyup', (event) => {
+    if (event.key === 'ArrowRight' || event.key === 'd') keys.gas = false;
+    if (event.key === 'ArrowLeft' || event.key === 'a') keys.brake = false;
+});
+
+// 9. Apply Engine Power and Camera Tracking
+Matter.Events.on(engine, 'beforeUpdate', () => {
+    const enginePower = 0.05; 
+
+    if (keys.gas) {
+        wheelA.torque = enginePower;
+        wheelB.torque = enginePower;
+    }
+    
+    if (keys.brake) {
+        wheelA.torque = -enginePower;
+        wheelB.torque = -enginePower;
+    }
+
+    // 10. Camera Tracking
+    VehicleRender.lookAt(render, {
+        min: { x: chassis.position.x - window.innerWidth / 2, y: chassis.position.y - window.innerHeight / 2 + 100 },
+        max: { x: chassis.position.x + window.innerWidth / 2, y: chassis.position.y + window.innerHeight / 2 + 100 }
+    });
+});
