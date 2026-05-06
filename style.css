@@ -1,146 +1,63 @@
 /* Reset margins and prevent scrolling */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body, html { width: 100%; height: 100%; overflow: hidden; background-color: #87CEEB; touch-action: none; }
+#game-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
+canvas { display: block; }
 
-body, html {
-    width: 100%;
-    height: 100%;
-    overflow: hidden; 
-    background-color: #87CEEB; /* Sky blue */
-    touch-action: none; 
-}
+/* Gameplay UI Overlays */
+#score-display { position: absolute; top: 60px; left: 20px; color: #FFD700; font-size: 28px; font-weight: bold; font-family: sans-serif; text-shadow: 2px 2px 0 #000; z-index: 10; }
+#bank-display { position: absolute; top: 95px; left: 20px; color: #ffffff; font-size: 20px; font-weight: bold; font-family: sans-serif; text-shadow: 2px 2px 0px #000; z-index: 10; }
+#fuel-container { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); width: 200px; height: 25px; background-color: rgba(0, 0, 0, 0.7); border: 3px solid white; border-radius: 10px; z-index: 10; overflow: hidden; }
+#fuel-bar { width: 100%; height: 100%; background-color: #00ff00; transition: width 0.1s linear, background-color 0.3s; }
 
-#game-container {
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
+/* Mobile Controls Layer */
+#ui-layer { position: absolute; bottom: 20px; left: 0; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; pointer-events: none; z-index: 10; }
 
-canvas {
-    display: block;
-}
-
-/* Style the Score Display */
-#score-display {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    color: #FFD700; 
-    font-size: 28px;
-    font-weight: bold;
-    font-family: sans-serif;
-    text-shadow: 2px 2px 0 #000; 
-    z-index: 10; 
-}
-
-/* Style the Total Bank Display */
-#bank-display {
-    position: absolute;
-    top: 60px; 
-    left: 20px;
-    color: #ffffff; 
-    font-size: 20px;
-    font-weight: bold;
-    font-family: sans-serif;
-    text-shadow: 2px 2px 0px #000;
-    z-index: 10;
-}
-
-/* Style the Fuel Gauge */
-#fuel-container {
-    position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%); 
-    width: 200px;
-    height: 25px;
-    background-color: rgba(0, 0, 0, 0.7);
-    border: 3px solid white;
-    border-radius: 10px;
-    z-index: 10;
-    overflow: hidden;
-}
-
-#fuel-bar {
-    width: 100%; 
-    height: 100%;
-    background-color: #00ff00; 
-    transition: width 0.1s linear, background-color 0.3s;
-}
-
-/* UI Layer sitting on top of the canvas */
-#ui-layer {
-    position: absolute;
-    bottom: 20px;
-    left: 0;
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    padding: 0 20px;
-    pointer-events: none; 
-}
-
-/* Style the Gas and Brake buttons */
-button {
+/* Graphical Pedals */
+button { 
     pointer-events: auto; 
-    background-color: rgba(0, 0, 0, 0.5);
-    color: white;
-    border: 2px solid white;
-    border-radius: 50%;
-    width: 80px;
-    height: 80px;
-    font-size: 16px;
-    font-weight: bold;
+    width: 80px; 
+    height: 100px; 
+    border: none; 
+    background-color: transparent;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    color: transparent; 
     user-select: none; 
-    -webkit-user-select: none;
+    -webkit-user-select: none; 
 }
+button:active { opacity: 0.6; }
+#btn-gas { background-image: url('assets/pedal_gas.png'); }
+#btn-brake { background-image: url('assets/pedal_brake.png'); }
 
-button:active {
-    background-color: rgba(255, 0, 0, 0.7); 
+/* Main Menu / Garage Screen */
+#main-menu {
+    position: absolute; top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%); 
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    z-index: 200; 
+    font-family: sans-serif; color: white; text-align: center;
 }
+#game-title { font-size: 42px; font-weight: 900; text-shadow: 3px 3px 0px #000; margin-bottom: 10px; }
+#menu-bank-display { font-size: 24px; color: #FFD700; margin-bottom: 40px; text-shadow: 2px 2px 0px #000; }
+.vehicle-selection { display: flex; flex-direction: column; gap: 20px; width: 80%; max-width: 400px; }
+.menu-btn {
+    width: 100%; height: 60px;
+    background-color: #28a745; color: white !important; font-size: 20px; font-weight: bold;
+    border-radius: 10px; text-transform: uppercase; box-shadow: 0px 5px 0px rgba(0,0,0,0.3);
+}
+.menu-btn:active { transform: translateY(5px); box-shadow: none; opacity: 1; }
 
 /* Game Over Screen */
 #game-over-screen {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
+    position: absolute; top: 0; left: 0;
+    width: 100vw; height: 100vh;
     background-color: rgba(0, 0, 0, 0.85); 
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 100; 
-    color: white;
-    font-family: sans-serif;
-    text-align: center;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    z-index: 100; color: white; font-family: sans-serif; text-align: center;
 }
-
-#game-over-title {
-    color: #ff4444;
-    font-size: 48px;
-    margin-bottom: 10px;
-    text-transform: uppercase;
-    text-shadow: 2px 2px 0px #000;
-}
-
-#final-score-text {
-    font-size: 24px;
-    color: #FFD700;
-    margin-bottom: 30px;
-}
-
-#btn-restart {
-    background-color: #28a745; 
-    padding: 15px 40px;
-    font-size: 24px;
-    border-radius: 10px;
-    width: auto;
-    height: auto;
-}
+#game-over-title { color: #ff4444; font-size: 48px; margin-bottom: 10px; text-transform: uppercase; text-shadow: 2px 2px 0px #000; }
+#final-score-text { font-size: 24px; color: #FFD700; margin-bottom: 30px; }
+#btn-restart { background-color: #28a745; color: white !important; padding: 15px 40px; font-size: 24px; font-weight: bold; border-radius: 10px; width: auto; height: auto; border: none; cursor: pointer; }
