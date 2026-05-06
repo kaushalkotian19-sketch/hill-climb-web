@@ -80,11 +80,11 @@ class Vehicle {
         
         // Pushes the wheels outward toward the bumpers. 
         // Increase to push wider, decrease to pull closer together.
-        const wheelOffset = 85; 
+        const wheelOffset = 90; 
         
         // Drops the wheels lower down to the ground so the chassis doesn't scrape.
         // Increase the '35' (e.g., to 45) to push wheels lower and lift the car up.
-        const wheelHeight = startY + 35; 
+        const wheelHeight = startY + 45; 
 
         // ==========================================
 
