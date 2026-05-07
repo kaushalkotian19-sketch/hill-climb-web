@@ -1,30 +1,37 @@
-// terrain.js - Smooth Procedural Hill Generation with a Flat Start
+// terrain.js - Advanced Multi-Tier Procedural Generation
 
 const Bodies = Matter.Bodies;
 const terrainParts = [];
 
 const segmentWidth = 40;     
-const totalSegments = 300;   
+const totalSegments = 800; // Expanded track length for testing!
 const baseHeight = window.innerHeight - 100;
 
-for (let i = 0; i < totalSegments; i++) {
+// --- THE 3-TIER WAVE MATH ---
+function getWaveHeight(index) {
+    if (index <= 20) return 0; // The flat starting runway
     
-    let waveHeight1 = 0;
-    let waveHeight2 = 0;
+    const i = index - 20;
     
-    // Flat runway for 15 segments, then bumpy mountains
-    if (i > 15) {
-        const step1 = i - 15;
-        const step2 = (i + 1) - 15;
-        waveHeight1 = (Math.sin(step1 * 0.06) * 80) + (Math.sin(step1 * 0.015) * 250); 
-        waveHeight2 = (Math.sin(step2 * 0.06) * 80) + (Math.sin(step2 * 0.015) * 250);
-    }
+    // 1. MACRO: Massive rolling mountains
+    const mountain = Math.sin(i * 0.015) * 300; 
+    
+    // 2. MID: Standard track hills
+    const hill = Math.sin(i * 0.08) * 80; 
+    
+    // 3. MICRO: Jagged dirt bumps for the suspension
+    const bump = Math.sin(i * 0.35) * 15; 
+    
+    // Combine all three layers!
+    return mountain + hill + bump;
+}
 
+for (let i = 0; i < totalSegments; i++) {
     const x1 = i * segmentWidth;
-    const y1 = baseHeight + waveHeight1;
+    const y1 = baseHeight + getWaveHeight(i);
 
     const x2 = (i + 1) * segmentWidth;
-    const y2 = baseHeight + waveHeight2;
+    const y2 = baseHeight + getWaveHeight(i + 1);
 
     const midX = (x1 + x2) / 2;
     const midY = (y1 + y2) / 2;
@@ -32,22 +39,25 @@ for (let i = 0; i < totalSegments; i++) {
     const distance = Math.hypot(x2 - x1, y2 - y1); 
     const angle = Math.atan2(y2 - y1, x2 - x1);
 
+    // --- THE OVERLAP HACK ---
+    // We make the width `distance + 15` instead of just `distance`.
+    // This forces the blocks to overlap, sealing the invisible gaps!
     const chunk = Bodies.rectangle(
-        midX, midY + 200, distance + 2, 400,
+        midX, midY + 200, distance + 15, 400,
         { 
             isStatic: true, 
             angle: angle, 
             friction: 0.9, 
             label: 'ground', 
-            render: { fillStyle: '#5C4033' } // Dirt Brown
+            render: { fillStyle: '#5C4033' } 
         }
     );
 
     terrainParts.push(chunk);
 
-    // Spawn Coins
-    if (i % 10 === 0 && i > 5) {
-        const coin = Bodies.circle(midX, midY - 40, 15, {
+    // Spawn Coins (Slightly higher above the bumps)
+    if (i % 12 === 0 && i > 15) {
+        const coin = Bodies.circle(midX, midY - 45, 15, {
             isStatic: true, isSensor: true, label: 'coin', 
             render: { 
                 sprite: { texture: 'assets/coin.png', xScale: 0.04, yScale: 0.04 } 
@@ -57,8 +67,8 @@ for (let i = 0; i < totalSegments; i++) {
     }
 
     // Spawn Fuel
-    if (i % 35 === 0 && i > 10) {
-        const fuelCan = Bodies.rectangle(midX, midY - 50, 30, 40, {
+    if (i % 40 === 0 && i > 25) {
+        const fuelCan = Bodies.rectangle(midX, midY - 60, 30, 40, {
             isStatic: true, isSensor: true, label: 'fuel', 
             render: { fillStyle: '#ff0000' } 
         });
