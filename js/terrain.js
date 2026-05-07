@@ -1,4 +1,4 @@
-// terrain.js - Perfect Camera Sync & HD Renderer
+// terrain.js - Flawless Camera Sync & HD Renderer
 
 const Bodies = Matter.Bodies;
 const World = Matter.World;
@@ -79,31 +79,29 @@ Matter.Events.on(engine, 'beforeUpdate', () => {
 });
 
 // ==========================================
-// 🎨 SYNCED CAMERA MASTER RENDERER 🎨
+// 🎨 MANUAL OVERRIDE MASTER RENDERER 🎨
 // ==========================================
 Matter.Events.on(render, 'beforeRender', function() {
     const ctx = render.context;
     if (!render.bounds) return; 
 
-    ctx.save(); 
-
     const cameraX = render.bounds.min.x; 
     const cameraY = render.bounds.min.y;
-    const w = render.bounds.max.x - render.bounds.min.x; 
-    const h = render.bounds.max.y - render.bounds.min.y;
+    const w = render.canvas.width; 
+    const h = render.canvas.height;
 
-    // 🚨 THE MAGIC FIX 🚨
-    // We manually push our paint brush to follow the car's physical coordinates!
-    ctx.translate(-cameraX, -cameraY);
-
-    // 1. SKY (It follows the camera perfectly now)
-    const gradient = ctx.createLinearGradient(0, cameraY, 0, cameraY + h);
+    // 1. CLEAR SCREEN & DRAW SKY (Locked to screen coordinates)
+    ctx.clearRect(0, 0, w, h);
+    const gradient = ctx.createLinearGradient(0, 0, 0, h);
     gradient.addColorStop(0, '#2b90d9'); 
     gradient.addColorStop(1, '#8bd3fb'); 
     ctx.fillStyle = gradient; 
-    ctx.fillRect(cameraX, cameraY, w, h);
+    ctx.fillRect(0, 0, w, h);
 
-    // 2. PARALLAX MOUNTAINS
+    // 2. APPLY CAMERA FOR MOUNTAINS & GRASS
+    ctx.save(); 
+    ctx.translate(-cameraX, -cameraY);
+
     function drawParallaxLayer(speed, color, heightOffset, zoom) {
         ctx.beginPath(); 
         ctx.moveTo(cameraX, cameraY + h); 
@@ -122,7 +120,6 @@ Matter.Events.on(render, 'beforeRender', function() {
     drawParallaxLayer(0.9, '#5d8ba6', -50, 0.003); 
     drawParallaxLayer(0.6, '#499a7b', 80, 0.006);  
 
-    // 3. HD GRASS & DIRT (Finally drawn under the tires!)
     const indices = Object.keys(activeSegments).map(Number).sort((a,b) => a - b);
     if (indices.length > 0) {
         const minIndex = indices[0]; 
