@@ -170,3 +170,129 @@ Matter.Events.on(engine, 'beforeUpdate', () => {
         max: { x: window.playerCar.chassis.position.x + window.innerWidth / 2, y: window.playerCar.chassis.position.y + window.innerHeight / 2 + 100 }
     });
 });
+
+// ==========================================
+// 💨 EXHAUST SMOKE PARTICLE SYSTEM 💨
+// ==========================================
+const smokeParticles = [];
+
+// We use 'afterRender' so the smoke is drawn ON TOP of the terrain and car
+Matter.Events.on(render, 'afterRender', function() {
+    const ctx = render.context;
+
+    // --- 1. SPAWN NEW SMOKE ---
+    // Only spawn smoke if the car exists, it has fuel, and you are pressing the GAS!
+    if (window.playerCar && keys.gas && window.gameFuel > 0 && !window.isGameOver) {
+        const chassis = window.playerCar.chassis;
+        
+        // Calculate the exact spot of the exhaust pipe (bottom back of the red Jeep)
+        const offsetX = -75; // 75 pixels behind the center
+        const offsetY = 15;  // 15 pixels down from the center
+        
+        // Trig math to keep the smoke spawning at the exhaust even when the car flips!
+        const angle = chassis.angle;
+        const exhaustX = chassis.position.x + offsetX * Math.cos(angle) - offsetY * Math.sin(angle);
+        const exhaustY = chassis.position.y + offsetX * Math.sin(angle) + offsetY * Math.cos(angle);
+
+        // Spawn 1-2 new puffs of smoke every frame
+        smokeParticles.push({
+            x: exhaustX,
+            y: exhaustY,
+            // Give it a random little kick backwards and upwards
+            vx: (Math.random() * -2) - 1, 
+            vy: (Math.random() * 2) - 2,  
+            size: Math.random() * 5 + 5,  // Starting size of the puff
+            life: 1.0                     // Starts at 100% visible (Alpha 1.0)
+        });
+    }
+
+    // --- 2. UPDATE & DRAW SMOKE ---
+    // Loop backward through the array so we can safely delete dead particles
+    for (let i = smokeParticles.length - 1; i >= 0; i--) {
+        let p = smokeParticles[i];
+        
+        // Draw the smoke puff
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, 2 * Math.PI);
+        ctx.fillStyle = `rgba(130, 130, 130, ${p.life})`; // Thick gray smoke
+        ctx.fill();
+
+        // Animate the puff for the next frame
+        p.x += p.vx;
+        p.y += p.vy;
+        p.size += 0.7;  // Smoke billows and expands
+        p.life -= 0.04; // Smoke slowly dissipates into the air
+
+        // If the smoke is invisible, delete it to save phone battery!
+        if (p.life <= 0) {
+            smokeParticles.splice(i, 1);
+        }
+    }
+});
+
+// ==========================================
+// 🪨 DIRT CLOD PARTICLE SYSTEM 🪨
+// ==========================================
+const dirtParticles = [];
+
+Matter.Events.on(render, 'afterRender', function() {
+    const ctx = render.context;
+
+    // --- 1. SPAWN NEW DIRT CLODS ---
+    // Only spawn if pressing gas and the car is alive
+    if (window.playerCar && keys.gas && window.gameFuel > 0 && !window.isGameOver) {
+        
+        // Target the BACK wheel specifically (wheelA is the back wheel)
+        const backWheel = window.playerCar.wheelA;
+        const wheelRadius = window.playerCar.config.wheelSize;
+        
+        // Spawn 2-3 chunks of dirt every single frame
+        for (let i = 0; i < 2; i++) {
+            dirtParticles.push({
+                // Spawn exactly at the bottom of the tire where it hits the ground
+                x: backWheel.position.x + (Math.random() * 10 - 5),
+                y: backWheel.position.y + wheelRadius, 
+                
+                // Shoot violently backward (left) and slightly upward
+                vx: (Math.random() * -5) - 2, 
+                vy: (Math.random() * -4) - 1, 
+                
+                size: Math.random() * 5 + 2, // Random sized chunks
+                life: 1.0,                   
+                
+                // Give them a random spin so they tumble in the air
+                rotation: Math.random() * Math.PI * 2,
+                rotSpeed: (Math.random() * 0.4) - 0.2
+            });
+        }
+    }
+
+    // --- 2. UPDATE & DRAW DIRT ---
+    for (let i = dirtParticles.length - 1; i >= 0; i--) {
+        let p = dirtParticles[i];
+        
+        // Draw the dirt chunk as a tumbling square
+        ctx.save(); // Save canvas state
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation);
+        ctx.fillStyle = `rgba(92, 64, 51, ${p.life})`; // Rich dirt brown color
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+        ctx.restore(); // Restore canvas state
+
+        // Animate the dirt chunk
+        p.x += p.vx;
+        p.y += p.vy;
+        
+        // 🚨 FAKE GRAVITY! 🚨
+        // This constantly pulls the dirt back down to the ground, creating a perfect arc!
+        p.vy += 0.25; 
+        
+        p.rotation += p.rotSpeed; // Make it tumble
+        p.life -= 0.02; // Fade out slightly slower than the smoke
+
+        // Delete when invisible
+        if (p.life <= 0) {
+            dirtParticles.splice(i, 1);
+        }
+    }
+});
