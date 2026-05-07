@@ -6,21 +6,21 @@ const VehicleRender = Matter.Render;
 class Vehicle {
     constructor(startX, startY, vehicleType) {
         
-        // --- 1. THE FINAL PHYSICS TUNE ---
+        // --- 1. THE FINAL PHYSICS TUNE (HIGH HORSEPOWER) ---
         const stats = {
             jeep: {
-                width: 160, height: 40, weight: 0.005, 
-                wheelSize: 22, wheelGrip: 1.0,         
-                suspensionStiffness: 0.8, suspensionDamping: 0.1, // VERY strong springs
-                power: 0.4, // MASSIVE HORSEPOWER BOOST so it actually drives!
+                width: 160, height: 40, weight: 0.004, // Slightly lighter body
+                wheelSize: 22, wheelGrip: 1.2, // Extra grip so the tires don't just spin in the dirt        
+                suspensionStiffness: 0.5, suspensionDamping: 0.05, // Softened for better bounce
+                power: 4.0, // MASSIVE HORSEPOWER BOOST (was 0.4)
                 imageScale: 0.14, 
                 wheelScale: 0.045
             },
             monster_truck: {
-                width: 190, height: 50, weight: 0.008, 
-                wheelSize: 35, wheelGrip: 1.2,         
-                suspensionStiffness: 0.9, suspensionDamping: 0.1, 
-                power: 0.6, // Even more power for the monster truck
+                width: 190, height: 50, weight: 0.006, 
+                wheelSize: 35, wheelGrip: 1.5,         
+                suspensionStiffness: 0.6, suspensionDamping: 0.08, 
+                power: 8.0, // Monster torque for the monster truck
                 imageScale: 0.18, 
                 wheelScale: 0.06
             }
@@ -35,7 +35,7 @@ class Vehicle {
         this.chassis = Matter.Bodies.rectangle(startX, startY, this.config.width, this.config.height, { 
             collisionFilter: { group: carGroup }, 
             density: this.config.weight, 
-            chamfer: { radius: 20 }, // Sled-shaped so it can't get stuck
+            chamfer: { radius: 20 }, 
             render: { 
                 sprite: { 
                     texture: 'assets/chassis.png', 
@@ -56,11 +56,11 @@ class Vehicle {
             bodyB: this.head, pointB: { x: 0, y: 0 }, stiffness: 1, length: 25, render: { visible: false } 
         });
 
-        // --- 3. THE WHEELS ---
+        // --- 3. THE WHEELS (LIGHTWEIGHT FOR INSTANT SPIN) ---
         const wheelOptions = {
             collisionFilter: { group: carGroup }, 
             friction: this.config.wheelGrip, 
-            density: 0.005, // Balanced weight so they can spin
+            density: 0.001, // Super light tires so the engine can spin them easily
             restitution: 0.1, 
             render: { 
                 sprite: { 
@@ -72,22 +72,19 @@ class Vehicle {
         };
 
         const wheelOffsetX = 60; 
-        
-        // WE PUSH THE WHEELS WAY DOWN (60 pixels below the center of the car!)
         const wheelOffsetY = 60; 
 
         this.wheelA = Matter.Bodies.circle(startX - wheelOffsetX, startY + wheelOffsetY, this.config.wheelSize, wheelOptions); 
         this.wheelB = Matter.Bodies.circle(startX + wheelOffsetX, startY + wheelOffsetY, this.config.wheelSize, wheelOptions); 
 
         // --- 4. EXTENDED ANCHOR SUSPENSION ---
-        // By setting pointA.y to 60, we force the springs to hold the wheels far below the visual image
         const axelA = Constraint.create({
             bodyA: this.chassis, 
-            pointA: { x: -wheelOffsetX, y: wheelOffsetY }, // Anchor is pulled outside the physical box!
+            pointA: { x: -wheelOffsetX, y: wheelOffsetY }, 
             bodyB: this.wheelA, 
             stiffness: this.config.suspensionStiffness, 
             damping: this.config.suspensionDamping,   
-            length: 0, // Keeps the wheel locked directly to the extended anchor point
+            length: 0, 
             render: { visible: false } 
         });
 
@@ -108,7 +105,6 @@ class Vehicle {
     }
 
     drive(keys) {
-        // Torque is applied here. We boosted the power massively!
         if (keys.gas) { this.wheelA.torque = this.enginePower; this.wheelB.torque = this.enginePower; }
         if (keys.brake) { this.wheelA.torque = -this.enginePower; this.wheelB.torque = -this.enginePower; }
     }
