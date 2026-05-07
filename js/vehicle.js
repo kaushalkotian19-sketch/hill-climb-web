@@ -6,20 +6,20 @@ const VehicleRender = Matter.Render;
 class Vehicle {
     constructor(startX, startY, vehicleType) {
         
-        // --- 1. RECALIBRATED STATS ---
+        // --- 1. RECALIBRATED STATS (HEAVY DUTY SHOCKS) ---
         const stats = {
             jeep: {
-                width: 180, height: 50, weight: 0.002, // Taller physical box so it balances well
+                width: 170, height: 30, weight: 0.002, // Thinner hitbox for more ground clearance
                 wheelSize: 22, wheelGrip: 1.0,         
-                suspensionStiffness: 0.12, suspensionDamping: 0.03, // Bouncy
-                power: 0.12, // Fast
-                imageScale: 0.14, // Matches the width of the physical box perfectly
-                wheelScale: 0.04
+                suspensionStiffness: 0.6, suspensionDamping: 0.08, // STIFF SHOCKS!
+                power: 0.12, 
+                imageScale: 0.14, 
+                wheelScale: 0.045
             },
             monster_truck: {
-                width: 200, height: 60, weight: 0.005, 
+                width: 200, height: 40, weight: 0.005, 
                 wheelSize: 35, wheelGrip: 1.2,         
-                suspensionStiffness: 0.2, suspensionDamping: 0.1, 
+                suspensionStiffness: 0.8, suspensionDamping: 0.1, 
                 power: 0.15,
                 imageScale: 0.18, 
                 wheelScale: 0.06
@@ -29,6 +29,7 @@ class Vehicle {
         this.config = stats[vehicleType] || stats.jeep;
         this.enginePower = this.config.power;
 
+        // Matter.Body.nextGroup(true) creates a negative group, meaning these parts won't collide with each other
         const carGroup = Matter.Body.nextGroup(true);
 
         // --- 2. BUILD THE CHASSIS ---
@@ -55,7 +56,7 @@ class Vehicle {
             bodyB: this.head, pointB: { x: 0, y: 0 }, stiffness: 1, length: 20, render: { visible: false } 
         });
 
-        // --- 3. BUILD THE WHEELS (FIXED ALIGNMENT) ---
+        // --- 3. BUILD THE WHEELS ---
         const wheelOptions = {
             collisionFilter: { group: carGroup }, friction: this.config.wheelGrip, restitution: 0.1, 
             render: { 
@@ -67,11 +68,8 @@ class Vehicle {
             }  
         };
 
-        // --- HARDCODED ALIGNMENT FOR YOUR SPECIFIC IMAGE ---
-        // Left/Right distance from the center
         const wheelOffsetX = 65; 
-        // Push the wheels DOWN 60 pixels from the center of the car body
-        const wheelOffsetY = 60; 
+        const wheelOffsetY = 30; // Spawns the wheels tightly under the car
 
         this.wheelA = Matter.Bodies.circle(startX - wheelOffsetX, startY + wheelOffsetY, this.config.wheelSize, wheelOptions); 
         this.wheelB = Matter.Bodies.circle(startX + wheelOffsetX, startY + wheelOffsetY, this.config.wheelSize, wheelOptions); 
@@ -79,19 +77,19 @@ class Vehicle {
         // --- 4. BUILD THE SUSPENSION ---
         const axelA = Constraint.create({
             bodyA: this.chassis, 
-            pointA: { x: -wheelOffsetX, y: 20 }, // Attach near the bottom of the physical box
+            pointA: { x: -wheelOffsetX, y: 15 }, // Attach near the bottom of the chassis
             bodyB: this.wheelA, 
             stiffness: this.config.suspensionStiffness, damping: this.config.suspensionDamping,   
-            length: 45, // Long spring to allow the wheels to hang low
+            length: 20, // Short, stiff springs
             render: { visible: false } 
         });
 
         const axelB = Constraint.create({
             bodyA: this.chassis, 
-            pointA: { x: wheelOffsetX, y: 20 },
+            pointA: { x: wheelOffsetX, y: 15 },
             bodyB: this.wheelB, 
             stiffness: this.config.suspensionStiffness, damping: this.config.suspensionDamping,
-            length: 45, 
+            length: 20, 
             render: { visible: false } 
         });
 
@@ -108,7 +106,7 @@ class Vehicle {
 }
 
 // ==========================================
-// 2. WAIT FOR MENU (Don't spawn automatically)
+// 2. WAIT FOR MENU 
 // ==========================================
 window.playerCar = null;
 
@@ -141,7 +139,6 @@ btnBrake.addEventListener('mousedown', (e) => { keys.brake = true; });
 btnBrake.addEventListener('mouseup', (e) => { keys.brake = false; });
 
 Matter.Events.on(engine, 'beforeUpdate', () => {
-    // Only track camera and drive if a car has spawned
     if (!window.playerCar) return; 
 
     if (window.gameFuel > 0 && !window.isGameOver) {
