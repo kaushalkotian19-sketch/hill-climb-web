@@ -34,6 +34,7 @@ function spawnSegment(index) {
 
     const parts = [];
 
+    // The physics dirt block (invisible, so we can draw HD grass over it)
     const chunk = Bodies.rectangle(midX, midY + 200, distance + 15, 400, { 
         isStatic: true, angle: angle, friction: 0.9, label: 'ground', render: { visible: false } 
     });
@@ -82,7 +83,6 @@ Matter.Events.on(engine, 'beforeUpdate', () => {
 // ==========================================
 // 🎨 MASTER RENDERER: SKY, MOUNTAINS & GRASS 🎨
 // ==========================================
-// Using 'beforeRender' ensures the physical car and smoke draw ON TOP of the grass!
 Matter.Events.on(render, 'beforeRender', function() {
     const ctx = render.context;
     const bounds = render.bounds;
@@ -117,19 +117,21 @@ Matter.Events.on(render, 'beforeRender', function() {
 
     const minIndex = indices[0]; const maxIndex = indices[indices.length - 1];
 
+    // DRAW DIRT BASE
     ctx.beginPath();
     ctx.moveTo(minIndex * segmentWidth, window.innerHeight + 1500); 
     for (let i = minIndex; i <= maxIndex; i++) {
         ctx.lineTo(i * segmentWidth, baseHeight + getWaveHeight(i)); 
     }
     ctx.lineTo(maxIndex * segmentWidth, window.innerHeight + 1500); 
-    ctx.fillStyle = '#6D4C41'; ctx.fill(); // DIRT FILL
+    ctx.fillStyle = '#6D4C41'; ctx.fill(); 
 
+    // DRAW THICK GREEN GRASS
     ctx.beginPath();
     for (let i = minIndex; i <= maxIndex; i++) {
         const x = i * segmentWidth; const y = baseHeight + getWaveHeight(i);
         if (i === minIndex) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
-    ctx.lineWidth = 22; ctx.strokeStyle = '#43A047'; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke(); // THICK GRASS
-    ctx.lineWidth = 8; ctx.strokeStyle = '#81C784'; ctx.stroke(); // LIGHT GRASS HIGHLIGHT
+    ctx.lineWidth = 22; ctx.strokeStyle = '#43A047'; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke(); 
+    ctx.lineWidth = 8; ctx.strokeStyle = '#81C784'; ctx.stroke(); 
 });
