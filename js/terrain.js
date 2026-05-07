@@ -81,16 +81,18 @@ Matter.Events.on(engine, 'beforeUpdate', () => {
 });
 
 // ==========================================
-// 🎨 BULLETPROOF MASTER RENDERER 🎨
+// 🎨 THE FINAL BULLETPROOF RENDERER 🎨
 // ==========================================
+
+// 🚨 MAGIC FIX: Tell the physics engine to STOP erasing our canvas! 🚨
+render.options.background = null;
+render.options.clearBeforeRender = false;
+
 Matter.Events.on(render, 'beforeRender', function() {
     const ctx = render.context;
-    
-    // Safety check: Don't draw if the camera hasn't loaded yet
     if (!render.bounds) return; 
 
-    // 🚨 SAVE THE ENGINE STATE 🚨
-    // This stops our custom art from breaking the physics car!
+    // Protects our colors from leaking into the car paint
     ctx.save(); 
 
     const cameraX = render.bounds.min.x; 
@@ -98,14 +100,14 @@ Matter.Events.on(render, 'beforeRender', function() {
     const w = render.bounds.max.x - render.bounds.min.x; 
     const h = render.bounds.max.y - render.bounds.min.y;
 
-    // 1. DRAW DYNAMIC SKY (Deep blue to light blue)
+    // 1. DRAW SKY GRADIENT (Because the engine isn't erasing anymore, this acts as our screen wipe!)
     const gradient = ctx.createLinearGradient(0, cameraY, 0, cameraY + h);
     gradient.addColorStop(0, '#2b90d9'); 
     gradient.addColorStop(1, '#8bd3fb'); 
     ctx.fillStyle = gradient; 
     ctx.fillRect(cameraX, cameraY, w, h);
 
-    // 2. PARALLAX RENDER ENGINE
+    // 2. PARALLAX MOUNTAINS
     function drawParallaxLayer(speed, color, heightOffset, zoom) {
         ctx.beginPath(); 
         ctx.moveTo(cameraX, cameraY + h); 
@@ -113,7 +115,6 @@ Matter.Events.on(render, 'beforeRender', function() {
         for (let x = 0; x <= w + 50; x += 50) {
             const worldX = cameraX + x;
             const mathX = worldX - parallaxX;
-            // Mix waves for organic mountains
             const y = Math.sin(mathX * zoom) * 120 + Math.sin(mathX * zoom * 0.5) * 60;
             ctx.lineTo(worldX, cameraY + (h / 2) + heightOffset + y);
         }
@@ -122,18 +123,16 @@ Matter.Events.on(render, 'beforeRender', function() {
         ctx.fill();
     }
 
-    // Draw Distant Mountains
-    drawParallaxLayer(0.9, '#5d8ba6', -50, 0.003); 
-    // Draw Closer Foothills
-    drawParallaxLayer(0.6, '#499a7b', 80, 0.006);  
+    drawParallaxLayer(0.9, '#5d8ba6', -50, 0.003); // Distant Mountains
+    drawParallaxLayer(0.6, '#499a7b', 80, 0.006);  // Closer Foothills
 
-    // 3. DRAW HD GRASS & DIRT OVER THE INVISIBLE BLOCKS
+    // 3. HD GRASS & DIRT
     const indices = Object.keys(activeSegments).map(Number).sort((a,b) => a - b);
     if (indices.length > 0) {
         const minIndex = indices[0]; 
         const maxIndex = indices[indices.length - 1];
 
-        // Fill the deep dirt underground
+        // Dirt Base
         ctx.beginPath();
         ctx.moveTo(minIndex * segmentWidth, window.innerHeight + 1500); 
         for (let i = minIndex; i <= maxIndex; i++) {
@@ -143,7 +142,7 @@ Matter.Events.on(render, 'beforeRender', function() {
         ctx.fillStyle = '#6D4C41'; 
         ctx.fill(); 
 
-        // Trace the top with thick Green Grass
+        // Thick Green Grass
         ctx.beginPath();
         for (let i = minIndex; i <= maxIndex; i++) {
             const x = i * segmentWidth; 
@@ -157,13 +156,12 @@ Matter.Events.on(render, 'beforeRender', function() {
         ctx.lineCap = 'round'; 
         ctx.stroke(); 
         
-        // Add the bright grass highlight
+        // Light Grass Highlight
         ctx.lineWidth = 8; 
         ctx.strokeStyle = '#81C784'; 
         ctx.stroke(); 
     }
 
-    // 🚨 RESTORE THE ENGINE STATE 🚨
-    // This hands control back to Matter.js so it can draw your car perfectly on top!
+    // Hand control back to Matter.js so it can draw the car!
     ctx.restore(); 
 });
