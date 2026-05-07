@@ -1,50 +1,39 @@
-// terrain.js - FULL WORKING TERRAIN
+// terrain.js - FINAL WORKING MOUNTAIN TERRAIN
 
 const Bodies = Matter.Bodies;
 const World = Matter.World;
 
+// ==========================================
+// 🌍 WORLD SETTINGS
+// ==========================================
 const segmentWidth = 40;
 
-const baseHeight =
-    window.innerHeight - 100;
+// Higher terrain so mountains visible
+const baseHeight = window.innerHeight - 350;
 
 const activeSegments = {};
 
 let lastCarX = null;
 
 // ==========================================
-// 🌍 HEIGHT GENERATOR
+// 🏔️ TERRAIN HEIGHT GENERATOR
 // ==========================================
 function getWaveHeight(index) {
 
+    // Flat spawn area
     if (index <= 20) return 0;
 
     const i = index - 20;
 
-    const mountain1 =
-        Math.sin(i * 0.011) * 200;
-
-    const mountain2 =
-        Math.sin(i * 0.017) * 150;
-
-    const hill =
-        Math.sin(i * 0.053) * 70;
-
-    const bump =
-        Math.sin(i * 0.31) *
-        Math.sin(i * 0.47) *
-        25;
-
     return (
-        mountain1 +
-        mountain2 +
-        hill +
-        bump
+        Math.sin(i * 0.08) * 120 +
+        Math.sin(i * 0.03) * 200 +
+        Math.sin(i * 0.2) * 35
     );
 }
 
 // ==========================================
-// 🧱 SPAWN SEGMENT
+// 🧱 SPAWN TERRAIN SEGMENT
 // ==========================================
 function spawnSegment(index) {
 
@@ -75,16 +64,20 @@ function spawnSegment(index) {
 
     const parts = [];
 
-    // Physics ground
+    // ==========================================
+    // 🌍 PHYSICS GROUND
+    // ==========================================
     const chunk = Bodies.rectangle(
         midX,
         midY + 200,
-        distance + 15,
+        distance + 20,
         400,
         {
             isStatic: true,
+
             angle: angle,
-            friction: 0.9,
+
+            friction: 1,
 
             label: 'ground',
 
@@ -96,16 +89,19 @@ function spawnSegment(index) {
 
     parts.push(chunk);
 
-    // Coins
+    // ==========================================
+    // 🪙 COINS
+    // ==========================================
     if (index % 12 === 0 && index > 15) {
 
         parts.push(
             Bodies.circle(
                 midX,
-                midY - 45,
+                midY - 60,
                 15,
                 {
                     isStatic: true,
+
                     isSensor: true,
 
                     label: 'coin',
@@ -116,6 +112,7 @@ function spawnSegment(index) {
                                 'assets/coin.png',
 
                             xScale: 0.04,
+
                             yScale: 0.04
                         }
                     }
@@ -124,17 +121,20 @@ function spawnSegment(index) {
         );
     }
 
-    // Fuel
+    // ==========================================
+    // ⛽ FUEL
+    // ==========================================
     if (index % 40 === 0 && index > 25) {
 
         parts.push(
             Bodies.rectangle(
                 midX,
-                midY - 60,
-                30,
-                40,
+                midY - 80,
+                35,
+                45,
                 {
                     isStatic: true,
+
                     isSensor: true,
 
                     label: 'fuel',
@@ -144,8 +144,9 @@ function spawnSegment(index) {
                             texture:
                                 'assets/fuel.png',
 
-                            xScale: 0.12,
-                            yScale: 0.12
+                            xScale: 0.13,
+
+                            yScale: 0.13
                         }
                     }
                 }
@@ -165,7 +166,7 @@ function spawnSegment(index) {
 }
 
 // ==========================================
-// ❌ REMOVE SEGMENT
+// ❌ REMOVE OLD SEGMENTS
 // ==========================================
 function removeSegment(index) {
 
@@ -185,7 +186,7 @@ function removeSegment(index) {
 }
 
 // ==========================================
-// 🚀 STARTING AREA
+// 🚀 CREATE STARTING TERRAIN
 // ==========================================
 for (let i = 0; i < 100; i++) {
 
@@ -223,7 +224,7 @@ Matter.Events.on(
                 carX / segmentWidth
             );
 
-        // Spawn nearby
+        // Spawn nearby terrain
         for (
             let i = currentIndex - 20;
             i <= currentIndex + 60;
@@ -239,7 +240,7 @@ Matter.Events.on(
             }
         }
 
-        // Remove old
+        // Remove far terrain
         for (const indexStr in activeSegments) {
 
             const i =
@@ -271,6 +272,7 @@ Matter.Events.on(
         if (!bounds) return;
 
         const cameraX = bounds.min.x;
+
         const cameraY = bounds.min.y;
 
         const w =
@@ -279,8 +281,22 @@ Matter.Events.on(
         const h =
             bounds.max.y - bounds.min.y;
 
-        // SKY
-        ctx.fillStyle = '#87CEEB';
+        // ==========================================
+        // 🌌 SKY
+        // ==========================================
+        const gradient =
+            ctx.createLinearGradient(
+                0,
+                cameraY,
+                0,
+                cameraY + h
+            );
+
+        gradient.addColorStop(0, '#4FC3F7');
+
+        gradient.addColorStop(1, '#B3E5FC');
+
+        ctx.fillStyle = gradient;
 
         ctx.fillRect(
             cameraX,
@@ -289,7 +305,47 @@ Matter.Events.on(
             h
         );
 
-        // TERRAIN
+        // ==========================================
+        // 🏔️ BACK MOUNTAINS
+        // ==========================================
+        ctx.beginPath();
+
+        ctx.moveTo(
+            cameraX,
+            cameraY + h
+        );
+
+        for (
+            let x = 0;
+            x <= w + 100;
+            x += 50
+        ) {
+
+            const worldX =
+                cameraX + x;
+
+            const y =
+                cameraY +
+                h / 2 +
+                Math.sin(worldX * 0.002) * 150;
+
+            ctx.lineTo(worldX, y);
+        }
+
+        ctx.lineTo(
+            cameraX + w,
+            cameraY + h
+        );
+
+        ctx.closePath();
+
+        ctx.fillStyle = '#7AA874';
+
+        ctx.fill();
+
+        // ==========================================
+        // 🌍 MAIN TERRAIN
+        // ==========================================
         const indices =
             Object.keys(activeSegments)
                 .map(Number)
@@ -304,7 +360,9 @@ Matter.Events.on(
                     indices.length - 1
                 ];
 
-            // DIRT
+            // ==========================================
+            // 🟫 DIRT
+            // ==========================================
             ctx.beginPath();
 
             ctx.moveTo(
@@ -338,11 +396,13 @@ Matter.Events.on(
 
             ctx.closePath();
 
-            ctx.fillStyle = '#5D4037';
+            ctx.fillStyle = '#6D4C41';
 
             ctx.fill();
 
-            // GRASS
+            // ==========================================
+            // 🌱 GRASS
+            // ==========================================
             ctx.beginPath();
 
             for (
@@ -368,13 +428,20 @@ Matter.Events.on(
                 }
             }
 
-            ctx.lineWidth = 35;
+            ctx.lineWidth = 30;
 
             ctx.strokeStyle = '#00FF00';
 
             ctx.lineJoin = 'round';
 
             ctx.lineCap = 'round';
+
+            ctx.stroke();
+
+            // Grass highlight
+            ctx.lineWidth = 10;
+
+            ctx.strokeStyle = '#7CFC00';
 
             ctx.stroke();
         }
