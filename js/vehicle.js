@@ -10,10 +10,10 @@ class Vehicle {
         // --- THE GARAGE (Vehicle Stats Database) ---
         const stats = {
             jeep: {
-                width: 240, height: 40, weight: 0.002, // Increased width and height to match your image
+                width: 200, height: 50, weight: 0.002, 
                 wheelSize: 25, wheelGrip: 1.0,         
-                suspensionStiffness: 0.15, suspensionDamping: 0.05,
-                power: 0.08
+                suspensionStiffness: 0.12, suspensionDamping: 0.03, // Bouncier!
+                power: 0.12 // Faster!
             },
             monster_truck: {
                 width: 200, height: 40, weight: 0.005, 
@@ -36,8 +36,8 @@ class Vehicle {
             render: { 
                 sprite: { 
                     texture: 'assets/chassis.png', 
-                    xScale: 0.3, 
-                    yScale: 0.3 
+                    xScale: 0.22, 
+                    yScale: 0.22 
                 } 
             } 
         });
@@ -68,8 +68,8 @@ class Vehicle {
             render: { 
                 sprite: { 
                     texture: 'assets/wheel.png', 
-                    xScale: 0.06, 
-                    yScale: 0.06 
+                    xScale: 0.045, 
+                    yScale: 0.045 
                 } 
             }  
         };
@@ -78,13 +78,11 @@ class Vehicle {
         // 🔧 TUNE YOUR WHEEL ALIGNMENT HERE 🔧
         // ==========================================
         
-        // Pushes the wheels outward toward the bumpers. 
-        // Increase to push wider, decrease to pull closer together.
-        const wheelOffset = 95; 
+        // Pushes the wheels wide enough to sit in the wheel wells
+        const wheelOffset = 90; 
         
-        // Drops the wheels lower down to the ground so the chassis doesn't scrape.
-        // Increase the '35' (e.g., to 45) to push wheels lower and lift the car up.
-        const wheelHeight = startY + 55; 
+        // Pushes the wheels all the way down to the bottom of the image
+        const wheelHeight = startY + 75; 
 
         // ==========================================
 
