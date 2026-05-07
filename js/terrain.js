@@ -1,12 +1,13 @@
-// terrain.js - Infinite Procedural Generation (FIXED)
+// terrain.js - Bulletproof Infinite Generation
 
 const Bodies = Matter.Bodies;
-const Composite = Matter.Composite;
+const World = Matter.World;
 
 const segmentWidth = 40;     
 const baseHeight = window.innerHeight - 100;
 
 const activeSegments = {};
+let lastCarX = null; // Used to detect when you click "Try Again"
 
 // --- THE 3-TIER WAVE MATH ---
 function getWaveHeight(index) {
@@ -27,13 +28,11 @@ function spawnSegment(index) {
 
     const x1 = index * segmentWidth;
     const y1 = baseHeight + getWaveHeight(index);
-
     const x2 = (index + 1) * segmentWidth;
     const y2 = baseHeight + getWaveHeight(index + 1);
 
     const midX = (x1 + x2) / 2;
     const midY = (y1 + y2) / 2;
-
     const distance = Math.hypot(x2 - x1, y2 - y1); 
     const angle = Math.atan2(y2 - y1, x2 - x1);
 
@@ -56,9 +55,7 @@ function spawnSegment(index) {
     if (index % 12 === 0 && index > 15) {
         const coin = Bodies.circle(midX, midY - 45, 15, {
             isStatic: true, isSensor: true, label: 'coin', 
-            render: { 
-                sprite: { texture: 'assets/coin.png', xScale: 0.04, yScale: 0.04 } 
-            } 
+            render: { sprite: { texture: 'assets/coin.png', xScale: 0.04, yScale: 0.04 } } 
         });
         parts.push(coin);
     }
@@ -72,24 +69,27 @@ function spawnSegment(index) {
         parts.push(fuelCan);
     }
 
+    // Log it into our database
     activeSegments[index] = parts;
-    Composite.add(engine.world, parts);
+    
+    // Safely add each piece to the world
+    for (let j = 0; j < parts.length; j++) {
+        World.add(engine.world, parts[j]);
+    }
 }
 
 // --- WORLD DESTROYER ---
 function removeSegment(index) {
     if (!activeSegments[index]) return;
     
-    Composite.remove(engine.world, activeSegments[index]);
+    const parts = activeSegments[index];
+    
+    // Safely remove each piece from the world
+    for (let j = 0; j < parts.length; j++) {
+        World.remove(engine.world, parts[j]);
+    }
+    
     delete activeSegments[index];
-}
-
-// ==========================================
-// 🚨 THE FIX: PRE-BUILD THE STARTING AREA 🚨
-// ==========================================
-// Instantly builds the first 100 blocks so the car doesn't fall into the void!
-for (let i = 0; i < 100; i++) {
-    spawnSegment(i);
 }
 
 // --- THE INFINITE LOOP ---
@@ -97,6 +97,19 @@ Matter.Events.on(engine, 'beforeUpdate', () => {
     if (!window.playerCar) return; 
 
     const carX = window.playerCar.chassis.position.x;
+    
+    // ==========================================
+    // 🚨 RESTART DETECTOR 🚨
+    // If the car suddenly teleports backwards to the start line, 
+    // we know you clicked "Try Again". We clear our memory to rebuild!
+    // ==========================================
+    if (lastCarX !== null && carX < lastCarX - 500) {
+        for (const indexStr in activeSegments) {
+            delete activeSegments[indexStr]; 
+        }
+    }
+    lastCarX = carX;
+
     const currentIndex = Math.floor(carX / segmentWidth);
 
     const renderFront = 60; 
@@ -109,7 +122,7 @@ Matter.Events.on(engine, 'beforeUpdate', () => {
         }
     }
 
-    // 2. Delete the old track way behind you
+    // 2. Delete the old track way behind you to save phone battery
     for (const indexStr in activeSegments) {
         const i = parseInt(indexStr);
         if (i < currentIndex - renderBack || i > currentIndex + renderFront + 5) {
