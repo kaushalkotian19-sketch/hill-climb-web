@@ -1,4 +1,4 @@
-// main.js - Core Game Engine and Logic
+// main.js - Core Engine & Logic
 
 const Engine = Matter.Engine,
       Render = Matter.Render,
@@ -6,7 +6,7 @@ const Engine = Matter.Engine,
       Events = Matter.Events,
       Composite = Matter.Composite;
 
-// 1. Initialize Physics Engine (Using 'var' makes them globally accessible to terrain.js)
+// 'var' is required here so terrain.js can see the engine!
 var engine = Engine.create();
 var render = Render.create({
     element: document.body,
@@ -15,7 +15,7 @@ var render = Render.create({
         width: window.innerWidth,
         height: window.innerHeight,
         wireframes: false,
-        background: 'transparent' // Transparent so parallax sky shows through
+        background: 'transparent' 
     }
 });
 
@@ -23,77 +23,65 @@ Render.run(render);
 const runner = Runner.create();
 Runner.run(runner, engine);
 
-// Global Game Variables
 window.gameCoins = 0;
 window.bankCoins = parseInt(localStorage.getItem('bankCoins')) || 0;
 window.maxFuel = 100;
 window.gameFuel = window.maxFuel;
 window.isGameOver = false;
-window.startX = 200; // Starting position for distance tracking
+window.startX = 200; 
 
-// Start the game
 function startGame() {
     window.isGameOver = false;
     window.gameCoins = 0;
     window.gameFuel = window.maxFuel;
     document.getElementById('gameOverScreen').style.display = 'none';
-
-    // Update initial UI
     document.getElementById('bankDisplay').innerText = window.bankCoins;
     
-    // Spawn Player
+    // Spawn the physical car
     window.playerCar = new Vehicle(window.startX, window.innerHeight - 150, 'jeep');
+    Matter.World.add(engine.world, window.playerCar.composite); // <-- THIS FIXES THE INVISIBLE CAR!
 }
 
-// Game Over Logic
 function triggerGameOver(reason) {
     if (window.isGameOver) return;
     window.isGameOver = true;
-    
     window.bankCoins += window.gameCoins;
     localStorage.setItem('bankCoins', window.bankCoins);
-    
     document.getElementById('crash-text').innerText = reason === 'fuel' ? 'OUT OF FUEL!' : 'CRASHED!';
     document.getElementById('runCoinsDisplay').innerText = window.gameCoins;
     document.getElementById('totalBankDisplay').innerText = window.bankCoins;
     document.getElementById('gameOverScreen').style.display = 'block';
 }
 
-// Restart Logic
 document.getElementById('btn-restart').addEventListener('click', () => {
     Composite.clear(engine.world);
     Engine.clear(engine);
     
-    // Safely clear old terrain memory and rebuild the starting line
+    // Wipe old track and pre-build the new starting line
     if (typeof activeSegments !== 'undefined') {
-        for (const indexStr in activeSegments) {
-            delete activeSegments[indexStr];
-        }
-        for (let i = 0; i < 100; i++) { 
-            if (typeof spawnSegment === 'function') spawnSegment(i); 
-        }
+        for (const indexStr in activeSegments) { delete activeSegments[indexStr]; }
+        for (let i = 0; i < 100; i++) { if (typeof spawnSegment === 'function') spawnSegment(i); }
     }
-    
     startGame();
 });
 
-// Update Loop (Runs every frame)
 Events.on(engine, 'beforeUpdate', () => {
     if (!window.playerCar || window.isGameOver) return;
 
-    // 1. Calculate Distance
+    // CAMERA LOCK (Tracks the car!)
+    Render.lookAt(render, {
+        min: { x: window.playerCar.chassis.position.x - window.innerWidth / 2, y: window.playerCar.chassis.position.y - window.innerHeight / 2 + 100 },
+        max: { x: window.playerCar.chassis.position.x + window.innerWidth / 2, y: window.playerCar.chassis.position.y + window.innerHeight / 2 + 100 }
+    });
+
     const currentX = window.playerCar.chassis.position.x;
     let distanceMeters = Math.floor((currentX - window.startX) / 50);
     if (distanceMeters < 0) distanceMeters = 0;
     
-    // 2. Update UI Text
     document.getElementById('distanceDisplay').innerText = distanceMeters + 'm';
     document.getElementById('scoreDisplay').innerText = window.gameCoins;
     
-    // 3. Update Fuel (Safely check if keys exist yet)
-    if (typeof keys !== 'undefined' && keys.gas) {
-        window.gameFuel -= 0.05; 
-    }
+    if (typeof keys !== 'undefined' && keys.gas) window.gameFuel -= 0.05; 
     window.gameFuel -= 0.01; 
     
     if (window.gameFuel <= 0) {
@@ -112,19 +100,15 @@ Events.on(engine, 'beforeUpdate', () => {
     }
 });
 
-// Collision Logic (Coins, Fuel, and Crashing)
 Events.on(engine, 'collisionStart', (event) => {
     event.pairs.forEach((pair) => {
         const bodyA = pair.bodyA;
         const bodyB = pair.bodyB;
 
-        // Check Head Crash
-        if ((bodyA.label === 'head' && bodyB.label === 'ground') || 
-            (bodyB.label === 'head' && bodyA.label === 'ground')) {
+        if ((bodyA.label === 'head' && bodyB.label === 'ground') || (bodyB.label === 'head' && bodyA.label === 'ground')) {
             triggerGameOver('crash');
         }
 
-        // Collect Items Function
         function collect(item) {
             if (item.label === 'coin') {
                 window.gameCoins += 10;
@@ -136,15 +120,10 @@ Events.on(engine, 'collisionStart', (event) => {
             }
         }
 
-        // Check if car touches items
         if (bodyA === window.playerCar.chassis || bodyA === window.playerCar.wheelA || bodyA === window.playerCar.wheelB) collect(bodyB);
         if (bodyB === window.playerCar.chassis || bodyB === window.playerCar.wheelA || bodyB === window.playerCar.wheelB) collect(bodyA);
     });
 });
 
-// ==========================================
-// 🚨 DELAY BOOT UNTIL EVERYTHING IS LOADED 🚨
-// ==========================================
-window.onload = () => {
-    startGame();
-};
+// WAITS FOR ALL FILES TO DOWNLOAD BEFORE STARTING!
+window.onload = () => { startGame(); };
