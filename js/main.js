@@ -14,7 +14,9 @@ var render = Render.create({
         width: window.innerWidth,
         height: window.innerHeight,
         wireframes: false,
-        background: 'transparent' 
+        background: 'transparent',
+        // 🚨 THE MASTER FIX: Revokes the engine's permission to erase our art!
+        clearBeforeRender: false 
     }
 });
 
@@ -22,7 +24,6 @@ Render.run(render);
 const runner = Runner.create();
 Runner.run(runner, engine);
 
-// Global Variables
 window.gameCoins = 0;
 window.bankCoins = parseInt(localStorage.getItem('bankCoins')) || 0;
 window.maxFuel = 100;
@@ -30,7 +31,6 @@ window.gameFuel = window.maxFuel;
 window.isGameOver = false;
 window.startX = 200; 
 
-// Safely define keys globally so vehicle.js can use them
 window.keys = { gas: false, brake: false };
 
 function startGame() {
@@ -82,17 +82,13 @@ Events.on(engine, 'beforeUpdate', () => {
     const fuelFill = document.getElementById('fuel-bar-fill');
     fuelFill.style.width = fuelPercentage + '%';
     
-    if (fuelPercentage < 20) {
-        fuelFill.style.background = 'linear-gradient(to bottom, #FF3D00, #DD2C00)';
-    } else {
-        fuelFill.style.background = 'linear-gradient(to bottom, #4CAF50, #2E7D32)';
-    }
+    if (fuelPercentage < 20) fuelFill.style.background = 'linear-gradient(to bottom, #FF3D00, #DD2C00)';
+    else fuelFill.style.background = 'linear-gradient(to bottom, #4CAF50, #2E7D32)';
 });
 
 Events.on(engine, 'collisionStart', (event) => {
     event.pairs.forEach((pair) => {
-        const bodyA = pair.bodyA;
-        const bodyB = pair.bodyB;
+        const bodyA = pair.bodyA; const bodyB = pair.bodyB;
 
         if ((bodyA.label === 'head' && bodyB.label === 'ground') || (bodyB.label === 'head' && bodyA.label === 'ground')) {
             triggerGameOver('crash');
@@ -114,11 +110,7 @@ Events.on(engine, 'collisionStart', (event) => {
     });
 });
 
-// ==========================================
-// 🚨 BULLETPROOF BOOT SEQUENCE 🚨
-// ==========================================
 window.onload = () => {
-    // 1. Hook up the UI buttons only AFTER the HTML exists
     const btnGas = document.getElementById('btn-gas');
     const btnBrake = document.getElementById('btn-brake');
 
@@ -132,7 +124,6 @@ window.onload = () => {
     btnBrake.addEventListener('mousedown', () => { window.keys.brake = true; });
     btnBrake.addEventListener('mouseup', () => { window.keys.brake = false; });
 
-    // 2. Restart button logic
     document.getElementById('btn-restart').addEventListener('click', () => {
         Composite.clear(engine.world);
         Engine.clear(engine);
@@ -143,6 +134,5 @@ window.onload = () => {
         startGame();
     });
 
-    // 3. Start the game safely
     startGame();
 };
