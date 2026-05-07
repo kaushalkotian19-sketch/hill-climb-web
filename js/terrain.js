@@ -81,72 +81,89 @@ Matter.Events.on(engine, 'beforeUpdate', () => {
 });
 
 // ==========================================
-// 🎨 MASTER RENDERER: "DESTINATION-OVER" TRICK 🎨
+// 🎨 BULLETPROOF MASTER RENDERER 🎨
 // ==========================================
-// Using 'afterRender' ensures Matter.js won't erase our drawing!
-Matter.Events.on(render, 'afterRender', function() {
+Matter.Events.on(render, 'beforeRender', function() {
     const ctx = render.context;
-    const bounds = render.bounds;
     
-    const cameraX = bounds.min.x; 
-    const cameraY = bounds.min.y;
-    const w = bounds.max.x - bounds.min.x; 
-    const h = bounds.max.y - bounds.min.y;
+    // Safety check: Don't draw if the camera hasn't loaded yet
+    if (!render.bounds) return; 
 
-    // 🚨 MAGIC TRICK: This forces everything we draw next to appear BEHIND the car! 🚨
-    ctx.globalCompositeOperation = 'destination-over';
+    // 🚨 SAVE THE ENGINE STATE 🚨
+    // This stops our custom art from breaking the physics car!
+    ctx.save(); 
 
-    // 1. DRAW HD GRASS & DIRT (Front-most background layer)
+    const cameraX = render.bounds.min.x; 
+    const cameraY = render.bounds.min.y;
+    const w = render.bounds.max.x - render.bounds.min.x; 
+    const h = render.bounds.max.y - render.bounds.min.y;
+
+    // 1. DRAW DYNAMIC SKY (Deep blue to light blue)
+    const gradient = ctx.createLinearGradient(0, cameraY, 0, cameraY + h);
+    gradient.addColorStop(0, '#2b90d9'); 
+    gradient.addColorStop(1, '#8bd3fb'); 
+    ctx.fillStyle = gradient; 
+    ctx.fillRect(cameraX, cameraY, w, h);
+
+    // 2. PARALLAX RENDER ENGINE
+    function drawParallaxLayer(speed, color, heightOffset, zoom) {
+        ctx.beginPath(); 
+        ctx.moveTo(cameraX, cameraY + h); 
+        const parallaxX = cameraX * speed; 
+        for (let x = 0; x <= w + 50; x += 50) {
+            const worldX = cameraX + x;
+            const mathX = worldX - parallaxX;
+            // Mix waves for organic mountains
+            const y = Math.sin(mathX * zoom) * 120 + Math.sin(mathX * zoom * 0.5) * 60;
+            ctx.lineTo(worldX, cameraY + (h / 2) + heightOffset + y);
+        }
+        ctx.lineTo(cameraX + w, cameraY + h); 
+        ctx.fillStyle = color; 
+        ctx.fill();
+    }
+
+    // Draw Distant Mountains
+    drawParallaxLayer(0.9, '#5d8ba6', -50, 0.003); 
+    // Draw Closer Foothills
+    drawParallaxLayer(0.6, '#499a7b', 80, 0.006);  
+
+    // 3. DRAW HD GRASS & DIRT OVER THE INVISIBLE BLOCKS
     const indices = Object.keys(activeSegments).map(Number).sort((a,b) => a - b);
     if (indices.length > 0) {
         const minIndex = indices[0]; 
         const maxIndex = indices[indices.length - 1];
 
-        // Draw the Thick Green Grass Base
-        ctx.beginPath();
-        for (let i = minIndex; i <= maxIndex; i++) {
-            const x = i * segmentWidth; const y = baseHeight + getWaveHeight(i);
-            if (i === minIndex) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.lineWidth = 22; ctx.strokeStyle = '#43A047'; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke(); 
-        
-        // Draw Light Green Grass Highlight
-        ctx.lineWidth = 8; ctx.strokeStyle = '#81C784'; ctx.stroke(); 
-
-        // Draw the Dirt Fill
+        // Fill the deep dirt underground
         ctx.beginPath();
         ctx.moveTo(minIndex * segmentWidth, window.innerHeight + 1500); 
         for (let i = minIndex; i <= maxIndex; i++) {
             ctx.lineTo(i * segmentWidth, baseHeight + getWaveHeight(i)); 
         }
         ctx.lineTo(maxIndex * segmentWidth, window.innerHeight + 1500); 
-        ctx.fillStyle = '#6D4C41'; ctx.fill(); 
-    }
+        ctx.fillStyle = '#6D4C41'; 
+        ctx.fill(); 
 
-    // 2. PARALLAX RENDER ENGINE
-    function drawParallaxLayer(speed, color, heightOffset, zoom) {
-        ctx.beginPath(); ctx.moveTo(cameraX, cameraY + h); 
-        const parallaxX = cameraX * speed; 
-        for (let x = 0; x <= w + 50; x += 50) {
-            const worldX = cameraX + x;
-            const mathX = worldX - parallaxX;
-            const y = Math.sin(mathX * zoom) * 120 + Math.sin(mathX * zoom * 0.5) * 60;
-            ctx.lineTo(worldX, cameraY + (h / 2) + heightOffset + y);
+        // Trace the top with thick Green Grass
+        ctx.beginPath();
+        for (let i = minIndex; i <= maxIndex; i++) {
+            const x = i * segmentWidth; 
+            const y = baseHeight + getWaveHeight(i);
+            if (i === minIndex) ctx.moveTo(x, y); 
+            else ctx.lineTo(x, y);
         }
-        ctx.lineTo(cameraX + w, cameraY + h); ctx.fillStyle = color; ctx.fill();
+        ctx.lineWidth = 22; 
+        ctx.strokeStyle = '#43A047'; 
+        ctx.lineJoin = 'round'; 
+        ctx.lineCap = 'round'; 
+        ctx.stroke(); 
+        
+        // Add the bright grass highlight
+        ctx.lineWidth = 8; 
+        ctx.strokeStyle = '#81C784'; 
+        ctx.stroke(); 
     }
 
-    // 3. DRAW FOOTHILLS (Behind Dirt)
-    drawParallaxLayer(0.6, '#499a7b', 80, 0.006);  
-
-    // 4. DRAW DISTANT MOUNTAINS (Behind Foothills)
-    drawParallaxLayer(0.9, '#5d8ba6', -50, 0.003); 
-
-    // 5. DRAW DYNAMIC SKY (Absolute background layer)
-    const gradient = ctx.createLinearGradient(0, cameraY, 0, cameraY + h);
-    gradient.addColorStop(0, '#2b90d9'); gradient.addColorStop(1, '#8bd3fb'); 
-    ctx.fillStyle = gradient; ctx.fillRect(cameraX, cameraY, w, h);
-
-    // 🚨 VERY IMPORTANT: Reset the canvas mode so the car draws normally next frame! 🚨
-    ctx.globalCompositeOperation = 'source-over';
+    // 🚨 RESTORE THE ENGINE STATE 🚨
+    // This hands control back to Matter.js so it can draw your car perfectly on top!
+    ctx.restore(); 
 });
