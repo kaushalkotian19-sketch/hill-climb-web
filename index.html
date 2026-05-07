@@ -1,51 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
+
     <title>Hill Climb Web</title>
+
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
+    <!-- ========================================== -->
+    <!-- 🎮 UI LAYER -->
+    <!-- ========================================== -->
+
     <div id="ui-layer">
+
+        <!-- LEFT STATS -->
         <div id="stats-container">
+
             <div class="stat-row">
-                <img src="assets/coin.png" class="ui-icon" alt="Coins">
+                <img
+                    src="assets/coin.png"
+                    class="ui-icon"
+                    alt="Coins"
+                >
+
                 <span id="scoreDisplay">0</span>
             </div>
+
             <div class="stat-row">
-                <img src="assets/diamond.png" class="ui-icon" alt="Diamonds" onerror="this.style.display='none'"> 
+                <img
+                    src="assets/diamond.png"
+                    class="ui-icon"
+                    alt="Diamonds"
+                >
+
                 <span id="bankDisplay">0</span>
             </div>
+
         </div>
+
+        <!-- CENTER UI -->
         <div id="center-ui">
-            <div id="distanceDisplay">0m</div>
-            <div id="fuel-container">
-                <img src="assets/fuel.png" class="ui-icon" alt="Fuel" onerror="this.style.display='none'">
-                <div id="fuel-bar-bg">
-                    <div id="fuel-bar-fill"></div>
-                </div>
+
+            <div id="distanceDisplay">
+                0m
             </div>
+
+            <!-- FUEL -->
+            <div id="fuel-container">
+
+                <img
+                    src="assets/fuel.png"
+                    class="ui-icon"
+                    alt="Fuel"
+                >
+
+                <div id="fuel-bar-bg">
+
+                    <div id="fuel-bar-fill"></div>
+
+                </div>
+
+            </div>
+
         </div>
+
     </div>
 
-    <div id="gameOverScreen" style="display: none;">
-        <h1 id="crash-text">CRASHED!</h1>
-        <p>Run Coins: <span id="runCoinsDisplay">0</span></p>
-        <p>Total Bank: <span id="totalBankDisplay">0</span></p>
-        <button id="btn-restart">TRY AGAIN</button>
+    <!-- ========================================== -->
+    <!-- 💀 GAME OVER SCREEN -->
+    <!-- ========================================== -->
+
+    <div
+        id="gameOverScreen"
+        style="display:none;"
+    >
+
+        <h1 id="crash-text">
+            CRASHED!
+        </h1>
+
+        <p>
+            Run Coins:
+            <span id="runCoinsDisplay">0</span>
+        </p>
+
+        <p>
+            Total Bank:
+            <span id="totalBankDisplay">0</span>
+        </p>
+
+        <button id="btn-restart">
+            TRY AGAIN
+        </button>
+
     </div>
+
+    <!-- ========================================== -->
+    <!-- 🎮 CONTROLS -->
+    <!-- ========================================== -->
 
     <div id="controls">
-        <button id="btn-brake" class="control-btn">BRAKE</button>
-        <button id="btn-gas" class="control-btn">GAS</button>
+
+        <button
+            id="btn-brake"
+            class="control-btn"
+        >
+            BRAKE
+        </button>
+
+        <button
+            id="btn-gas"
+            class="control-btn"
+        >
+            GAS
+        </button>
+
     </div>
 
+    <!-- ========================================== -->
+    <!-- ⚙️ MATTER JS -->
+    <!-- ========================================== -->
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-    <script src="js/main.js?v=6"></script>
-    <script src="js/vehicle.js?v=8"></script>
-    <script src="js/terrain.js?v=8"></script>
-    
+
+    <!-- ========================================== -->
+    <!-- 💾 DATABASE -->
+    <!-- ========================================== -->
+
+    <script src="js/database.js"></script>
+
+    <!-- ========================================== -->
+    <!-- 🚗 GAME FILES -->
+    <!-- ========================================== -->
+
+    <script src="js/main.js?v=10"></script>
+
+    <script src="js/vehicle.js?v=10"></script>
+
+    <script src="js/terrain.js?v=10"></script>
+
 </body>
+
 </html>
