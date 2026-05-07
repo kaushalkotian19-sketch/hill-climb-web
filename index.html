@@ -8,48 +8,46 @@
 </head>
 <body>
 
-    <div id="game-container"></div>
-
-    <div id="score-display">Coins: 0</div>
-    <div id="bank-display">Bank: 0</div>
-
-    <div id="fuel-container">
-        <div id="fuel-bar"></div>
-    </div>
-
     <div id="ui-layer">
-        <button id="btn-brake">BRAKE</button>
-        <button id="btn-gas">GAS</button>
-    </div>
-
-    <div id="main-menu">
-        <h1 id="game-title">HILL CLIMB WEB</h1>
-        <div id="menu-bank-display">Total Bank: 0</div>
         
-        <h2>SELECT VEHICLE</h2>
-        <div class="vehicle-selection">
-            <button id="btn-start-jeep" class="menu-btn">
-                DRIVE JEEP
-            </button>
-            <button id="btn-start-monster" class="menu-btn">
-                UNLOCK MONSTER TRUCK (200)
-            </button>
+        <div id="stats-container">
+            <div class="stat-row">
+                <img src="assets/coin.png" class="ui-icon" alt="Coins">
+                <span id="scoreDisplay">0</span>
+            </div>
+            <div class="stat-row">
+                <img src="assets/diamond.png" class="ui-icon" alt="Diamonds" onerror="this.style.display='none'"> 
+                <span id="bankDisplay">0</span>
+            </div>
+        </div>
+
+        <div id="center-ui">
+            <div id="distanceDisplay">0m</div>
+            <div id="fuel-container">
+                <img src="assets/fuel.png" class="ui-icon" alt="Fuel" onerror="this.style.display='none'">
+                <div id="fuel-bar-bg">
+                    <div id="fuel-bar-fill"></div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div id="game-over-screen" style="display: none;">
-        <h1 id="game-over-title">CRASHED!</h1>
-        <p id="final-score-text">Final Coins: 0</p>
+    <div id="gameOverScreen" style="display: none;">
+        <h1 id="crash-text">CRASHED!</h1>
+        <p>Run Coins: <span id="runCoinsDisplay">0</span></p>
+        <p>Total Bank: <span id="totalBankDisplay">0</span></p>
         <button id="btn-restart">TRY AGAIN</button>
     </div>
 
+    <div id="controls">
+        <button id="btn-brake" class="control-btn">BRAKE</button>
+        <button id="btn-gas" class="control-btn">GAS</button>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-
-    <script src="js/main.js"></script>
-    <script src="js/database.js"></script> 
-    <script src="js/terrain.js"></script>
+    
     <script src="js/vehicle.js"></script>
-    <script src="js/ui.js"></script>
-
+    <script src="js/terrain.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>
