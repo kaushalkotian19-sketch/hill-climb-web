@@ -7,18 +7,17 @@ class Vehicle {
     constructor(startX, startY, vehicleType) {
         
         // --- 1. RECALIBRATED STATS ---
-        // Shrunk the width/height of the invisible hitboxes so they don't drag
         const stats = {
             jeep: {
-                width: 160, height: 30, weight: 0.002, 
+                width: 180, height: 50, weight: 0.002, // Taller physical box so it balances well
                 wheelSize: 22, wheelGrip: 1.0,         
-                suspensionStiffness: 0.12, suspensionDamping: 0.03,
-                power: 0.12,
-                imageScale: 0.15, // Shrunk the image to match the smaller hitbox
-                wheelScale: 0.035
+                suspensionStiffness: 0.12, suspensionDamping: 0.03, // Bouncy
+                power: 0.12, // Fast
+                imageScale: 0.14, // Matches the width of the physical box perfectly
+                wheelScale: 0.04
             },
             monster_truck: {
-                width: 180, height: 40, weight: 0.005, 
+                width: 200, height: 60, weight: 0.005, 
                 wheelSize: 35, wheelGrip: 1.2,         
                 suspensionStiffness: 0.2, suspensionDamping: 0.1, 
                 power: 0.15,
@@ -68,32 +67,31 @@ class Vehicle {
             }  
         };
 
-        // This pushes the wheels out toward the bumpers
-        const wheelOffset = this.config.width / 2 - 20; 
-        
-        // IMPORTANT FIX: This forces the wheels to spawn BELOW the chassis
-        const wheelHeight = startY + (this.config.height / 2) + this.config.wheelSize; 
+        // --- HARDCODED ALIGNMENT FOR YOUR SPECIFIC IMAGE ---
+        // Left/Right distance from the center
+        const wheelOffsetX = 65; 
+        // Push the wheels DOWN 60 pixels from the center of the car body
+        const wheelOffsetY = 60; 
 
-        this.wheelA = Matter.Bodies.circle(startX - wheelOffset, wheelHeight, this.config.wheelSize, wheelOptions); 
-        this.wheelB = Matter.Bodies.circle(startX + wheelOffset, wheelHeight, this.config.wheelSize, wheelOptions); 
+        this.wheelA = Matter.Bodies.circle(startX - wheelOffsetX, startY + wheelOffsetY, this.config.wheelSize, wheelOptions); 
+        this.wheelB = Matter.Bodies.circle(startX + wheelOffsetX, startY + wheelOffsetY, this.config.wheelSize, wheelOptions); 
 
         // --- 4. BUILD THE SUSPENSION ---
-        // Connects the wheels to the bottom edge of the chassis
         const axelA = Constraint.create({
             bodyA: this.chassis, 
-            pointA: { x: -wheelOffset, y: this.config.height / 2 }, // Attached to bottom
+            pointA: { x: -wheelOffsetX, y: 20 }, // Attach near the bottom of the physical box
             bodyB: this.wheelA, 
             stiffness: this.config.suspensionStiffness, damping: this.config.suspensionDamping,   
-            length: this.config.wheelSize + 5, // Gives the suspension room to bounce
+            length: 45, // Long spring to allow the wheels to hang low
             render: { visible: false } 
         });
 
         const axelB = Constraint.create({
             bodyA: this.chassis, 
-            pointA: { x: wheelOffset, y: this.config.height / 2 }, // Attached to bottom
+            pointA: { x: wheelOffsetX, y: 20 },
             bodyB: this.wheelB, 
             stiffness: this.config.suspensionStiffness, damping: this.config.suspensionDamping,
-            length: this.config.wheelSize + 5, 
+            length: 45, 
             render: { visible: false } 
         });
 
@@ -108,9 +106,6 @@ class Vehicle {
         if (keys.brake) { this.wheelA.torque = -this.enginePower; this.wheelB.torque = -this.enginePower; }
     }
 }
-
-// ... (Keep your existing Event Listeners below this line) ...
-
 
 // ==========================================
 // 2. WAIT FOR MENU (Don't spawn automatically)
