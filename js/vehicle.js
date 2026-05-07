@@ -6,21 +6,21 @@ const VehicleRender = Matter.Render;
 class Vehicle {
     constructor(startX, startY, vehicleType) {
         
-        // --- 1. BALANCED ARCADE PHYSICS ---
+        // --- 1. THE FINAL PHYSICS TUNE ---
         const stats = {
             jeep: {
-                width: 160, height: 30, weight: 0.002, 
-                wheelSize: 22, wheelGrip: 0.8, // Slightly lowered grip so it doesn't get stuck on walls
-                suspensionStiffness: 0.15, suspensionDamping: 0.05, // Perfect bouncy shocks!
-                power: 0.15, // High horsepower to spin the wheels instantly
+                width: 160, height: 40, weight: 0.005, 
+                wheelSize: 22, wheelGrip: 1.0,         
+                suspensionStiffness: 0.8, suspensionDamping: 0.1, // VERY strong springs
+                power: 0.4, // MASSIVE HORSEPOWER BOOST so it actually drives!
                 imageScale: 0.14, 
                 wheelScale: 0.045
             },
             monster_truck: {
-                width: 190, height: 40, weight: 0.004, 
-                wheelSize: 35, wheelGrip: 1.0,         
-                suspensionStiffness: 0.2, suspensionDamping: 0.08, 
-                power: 0.25,
+                width: 190, height: 50, weight: 0.008, 
+                wheelSize: 35, wheelGrip: 1.2,         
+                suspensionStiffness: 0.9, suspensionDamping: 0.1, 
+                power: 0.6, // Even more power for the monster truck
                 imageScale: 0.18, 
                 wheelScale: 0.06
             }
@@ -31,11 +31,11 @@ class Vehicle {
 
         const carGroup = Matter.Body.nextGroup(true);
 
-        // --- 2. THE CHASSIS (WITH SLED CORNERS) ---
+        // --- 2. THE CHASSIS ---
         this.chassis = Matter.Bodies.rectangle(startX, startY, this.config.width, this.config.height, { 
             collisionFilter: { group: carGroup }, 
             density: this.config.weight, 
-            chamfer: { radius: 15 }, // Slides over the dirt smoothly
+            chamfer: { radius: 20 }, // Sled-shaped so it can't get stuck
             render: { 
                 sprite: { 
                     texture: 'assets/chassis.png', 
@@ -46,21 +46,21 @@ class Vehicle {
         });
 
         // The Driver's Head 
-        this.head = Matter.Bodies.circle(startX, startY - 35, 12, {
+        this.head = Matter.Bodies.circle(startX, startY - 40, 10, {
             collisionFilter: { group: carGroup }, 
             density: 0.001, label: 'head', render: { fillStyle: 'transparent' } 
         });
 
         const neck = Constraint.create({
             bodyA: this.chassis, pointA: { x: 0, y: -this.config.height / 2 }, 
-            bodyB: this.head, pointB: { x: 0, y: 0 }, stiffness: 1, length: 20, render: { visible: false } 
+            bodyB: this.head, pointB: { x: 0, y: 0 }, stiffness: 1, length: 25, render: { visible: false } 
         });
 
-        // --- 3. LIGHTWEIGHT WHEELS ---
+        // --- 3. THE WHEELS ---
         const wheelOptions = {
             collisionFilter: { group: carGroup }, 
             friction: this.config.wheelGrip, 
-            density: 0.002, // FIXED: Changed back to lightweight rubber!
+            density: 0.005, // Balanced weight so they can spin
             restitution: 0.1, 
             render: { 
                 sprite: { 
@@ -72,30 +72,32 @@ class Vehicle {
         };
 
         const wheelOffsetX = 60; 
+        
+        // WE PUSH THE WHEELS WAY DOWN (60 pixels below the center of the car!)
+        const wheelOffsetY = 60; 
 
-        // We create the wheels a bit lower so the springs have room to connect
-        this.wheelA = Matter.Bodies.circle(startX - wheelOffsetX, startY + 30, this.config.wheelSize, wheelOptions); 
-        this.wheelB = Matter.Bodies.circle(startX + wheelOffsetX, startY + 30, this.config.wheelSize, wheelOptions); 
+        this.wheelA = Matter.Bodies.circle(startX - wheelOffsetX, startY + wheelOffsetY, this.config.wheelSize, wheelOptions); 
+        this.wheelB = Matter.Bodies.circle(startX + wheelOffsetX, startY + wheelOffsetY, this.config.wheelSize, wheelOptions); 
 
-        // --- 4. SHORT-TRAVEL SUSPENSION ---
-        // Anchored inside the wheel well, with exactly 15 pixels of bounce travel
+        // --- 4. EXTENDED ANCHOR SUSPENSION ---
+        // By setting pointA.y to 60, we force the springs to hold the wheels far below the visual image
         const axelA = Constraint.create({
             bodyA: this.chassis, 
-            pointA: { x: -wheelOffsetX, y: 15 }, // Anchor point on the car
+            pointA: { x: -wheelOffsetX, y: wheelOffsetY }, // Anchor is pulled outside the physical box!
             bodyB: this.wheelA, 
             stiffness: this.config.suspensionStiffness, 
             damping: this.config.suspensionDamping,   
-            length: 15, // FIXED: Gives just enough room for a satisfying bounce!
+            length: 0, // Keeps the wheel locked directly to the extended anchor point
             render: { visible: false } 
         });
 
         const axelB = Constraint.create({
             bodyA: this.chassis, 
-            pointA: { x: wheelOffsetX, y: 15 }, // Anchor point on the car
+            pointA: { x: wheelOffsetX, y: wheelOffsetY }, 
             bodyB: this.wheelB, 
             stiffness: this.config.suspensionStiffness, 
             damping: this.config.suspensionDamping,
-            length: 15, // FIXED
+            length: 0, 
             render: { visible: false } 
         });
 
@@ -106,9 +108,10 @@ class Vehicle {
     }
 
     drive(keys) {
+        // Torque is applied here. We boosted the power massively!
         if (keys.gas) { this.wheelA.torque = this.enginePower; this.wheelB.torque = this.enginePower; }
         if (keys.brake) { this.wheelA.torque = -this.enginePower; this.wheelB.torque = -this.enginePower; }
     }
 }
 
-// ... (Keep your controls and Matter.Events below this) ...
+// ... (Keep your controls and Matter.Events exactly the same below this) ...
