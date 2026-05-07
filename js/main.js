@@ -6,7 +6,6 @@ const Engine = Matter.Engine,
       Events = Matter.Events,
       Composite = Matter.Composite;
 
-// 'var' is required here so terrain.js can see the engine!
 var engine = Engine.create();
 var render = Render.create({
     element: document.body,
@@ -23,12 +22,16 @@ Render.run(render);
 const runner = Runner.create();
 Runner.run(runner, engine);
 
+// Global Variables
 window.gameCoins = 0;
 window.bankCoins = parseInt(localStorage.getItem('bankCoins')) || 0;
 window.maxFuel = 100;
 window.gameFuel = window.maxFuel;
 window.isGameOver = false;
 window.startX = 200; 
+
+// Safely define keys globally so vehicle.js can use them
+window.keys = { gas: false, brake: false };
 
 function startGame() {
     window.isGameOver = false;
@@ -37,9 +40,8 @@ function startGame() {
     document.getElementById('gameOverScreen').style.display = 'none';
     document.getElementById('bankDisplay').innerText = window.bankCoins;
     
-    // Spawn the physical car
     window.playerCar = new Vehicle(window.startX, window.innerHeight - 150, 'jeep');
-    Matter.World.add(engine.world, window.playerCar.composite); // <-- THIS FIXES THE INVISIBLE CAR!
+    Matter.World.add(engine.world, window.playerCar.composite); 
 }
 
 function triggerGameOver(reason) {
@@ -53,22 +55,9 @@ function triggerGameOver(reason) {
     document.getElementById('gameOverScreen').style.display = 'block';
 }
 
-document.getElementById('btn-restart').addEventListener('click', () => {
-    Composite.clear(engine.world);
-    Engine.clear(engine);
-    
-    // Wipe old track and pre-build the new starting line
-    if (typeof activeSegments !== 'undefined') {
-        for (const indexStr in activeSegments) { delete activeSegments[indexStr]; }
-        for (let i = 0; i < 100; i++) { if (typeof spawnSegment === 'function') spawnSegment(i); }
-    }
-    startGame();
-});
-
 Events.on(engine, 'beforeUpdate', () => {
     if (!window.playerCar || window.isGameOver) return;
 
-    // CAMERA LOCK (Tracks the car!)
     Render.lookAt(render, {
         min: { x: window.playerCar.chassis.position.x - window.innerWidth / 2, y: window.playerCar.chassis.position.y - window.innerHeight / 2 + 100 },
         max: { x: window.playerCar.chassis.position.x + window.innerWidth / 2, y: window.playerCar.chassis.position.y + window.innerHeight / 2 + 100 }
@@ -81,7 +70,7 @@ Events.on(engine, 'beforeUpdate', () => {
     document.getElementById('distanceDisplay').innerText = distanceMeters + 'm';
     document.getElementById('scoreDisplay').innerText = window.gameCoins;
     
-    if (typeof keys !== 'undefined' && keys.gas) window.gameFuel -= 0.05; 
+    if (window.keys.gas) window.gameFuel -= 0.05; 
     window.gameFuel -= 0.01; 
     
     if (window.gameFuel <= 0) {
@@ -125,5 +114,35 @@ Events.on(engine, 'collisionStart', (event) => {
     });
 });
 
-// WAITS FOR ALL FILES TO DOWNLOAD BEFORE STARTING!
-window.onload = () => { startGame(); };
+// ==========================================
+// 🚨 BULLETPROOF BOOT SEQUENCE 🚨
+// ==========================================
+window.onload = () => {
+    // 1. Hook up the UI buttons only AFTER the HTML exists
+    const btnGas = document.getElementById('btn-gas');
+    const btnBrake = document.getElementById('btn-brake');
+
+    btnGas.addEventListener('touchstart', (e) => { e.preventDefault(); window.keys.gas = true; });
+    btnGas.addEventListener('touchend', (e) => { e.preventDefault(); window.keys.gas = false; });
+    btnGas.addEventListener('mousedown', () => { window.keys.gas = true; });
+    btnGas.addEventListener('mouseup', () => { window.keys.gas = false; });
+
+    btnBrake.addEventListener('touchstart', (e) => { e.preventDefault(); window.keys.brake = true; });
+    btnBrake.addEventListener('touchend', (e) => { e.preventDefault(); window.keys.brake = false; });
+    btnBrake.addEventListener('mousedown', () => { window.keys.brake = true; });
+    btnBrake.addEventListener('mouseup', () => { window.keys.brake = false; });
+
+    // 2. Restart button logic
+    document.getElementById('btn-restart').addEventListener('click', () => {
+        Composite.clear(engine.world);
+        Engine.clear(engine);
+        if (typeof activeSegments !== 'undefined') {
+            for (const indexStr in activeSegments) { delete activeSegments[indexStr]; }
+            for (let i = 0; i < 100; i++) { if (typeof spawnSegment === 'function') spawnSegment(i); }
+        }
+        startGame();
+    });
+
+    // 3. Start the game safely
+    startGame();
+};
