@@ -1,4 +1,4 @@
-// terrain.js - Infinite Procedural Generation (Chunk Loading)
+// terrain.js - Infinite Procedural Generation (FIXED)
 
 const Bodies = Matter.Bodies;
 const Composite = Matter.Composite;
@@ -6,7 +6,6 @@ const Composite = Matter.Composite;
 const segmentWidth = 40;     
 const baseHeight = window.innerHeight - 100;
 
-// This database keeps track of the dirt blocks that currently exist in the world
 const activeSegments = {};
 
 // --- THE 3-TIER WAVE MATH ---
@@ -15,23 +14,16 @@ function getWaveHeight(index) {
     
     const i = index - 20;
     
-    // 1. MACRO: Massive rolling mountains
     const mountain = Math.sin(i * 0.015) * 300; 
-    
-    // 2. MID: Standard track hills
     const hill = Math.sin(i * 0.08) * 80; 
-    
-    // 3. MICRO: Jagged dirt bumps for the suspension
     const bump = Math.sin(i * 0.35) * 15; 
     
-    // Combine all three layers!
     return mountain + hill + bump;
 }
 
 // --- WORLD BUILDER ---
-// This function builds a single slice of terrain, plus any coins or fuel on it
 function spawnSegment(index) {
-    if (activeSegments[index]) return; // If we already built it, skip it
+    if (activeSegments[index]) return; 
 
     const x1 = index * segmentWidth;
     const y1 = baseHeight + getWaveHeight(index);
@@ -47,7 +39,7 @@ function spawnSegment(index) {
 
     const parts = [];
 
-    // The Dirt Block (with the +15 overlap hack)
+    // The Dirt Block
     const chunk = Bodies.rectangle(
         midX, midY + 200, distance + 15, 400,
         { 
@@ -80,13 +72,11 @@ function spawnSegment(index) {
         parts.push(fuelCan);
     }
 
-    // Save this slice to our database and add it to the physics engine
     activeSegments[index] = parts;
     Composite.add(engine.world, parts);
 }
 
 // --- WORLD DESTROYER ---
-// Deletes old slices to save memory
 function removeSegment(index) {
     if (!activeSegments[index]) return;
     
@@ -94,18 +84,23 @@ function removeSegment(index) {
     delete activeSegments[index];
 }
 
-// --- THE INFINITE LOOP ---
-// Every single frame, we check where the car is and build the world around it!
-Matter.Events.on(engine, 'beforeUpdate', () => {
-    if (!window.playerCar) return; // Don't build until the car spawns
+// ==========================================
+// 🚨 THE FIX: PRE-BUILD THE STARTING AREA 🚨
+// ==========================================
+// Instantly builds the first 100 blocks so the car doesn't fall into the void!
+for (let i = 0; i < 100; i++) {
+    spawnSegment(i);
+}
 
-    // Find out exactly which slice of the map the car is driving over right now
+// --- THE INFINITE LOOP ---
+Matter.Events.on(engine, 'beforeUpdate', () => {
+    if (!window.playerCar) return; 
+
     const carX = window.playerCar.chassis.position.x;
     const currentIndex = Math.floor(carX / segmentWidth);
 
-    // Render Distance: How far ahead and behind the car we want the world to exist
-    const renderFront = 60; // Build 60 blocks ahead so you can't see the edge
-    const renderBack = 20;  // Keep 20 blocks behind in case you roll backwards
+    const renderFront = 60; 
+    const renderBack = 20;  
 
     // 1. Build the new track in front of you
     for (let i = currentIndex - renderBack; i <= currentIndex + renderFront; i++) {
