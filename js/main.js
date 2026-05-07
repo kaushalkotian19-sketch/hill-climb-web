@@ -6,9 +6,9 @@ const Engine = Matter.Engine,
       Events = Matter.Events,
       Composite = Matter.Composite;
 
-// Initialize Physics Engine
-const engine = Engine.create();
-const render = Render.create({
+// 1. Initialize Physics Engine (Using 'var' makes them globally accessible to terrain.js)
+var engine = Engine.create();
+var render = Render.create({
     element: document.body,
     engine: engine,
     options: {
@@ -63,6 +63,17 @@ function triggerGameOver(reason) {
 document.getElementById('btn-restart').addEventListener('click', () => {
     Composite.clear(engine.world);
     Engine.clear(engine);
+    
+    // Safely clear old terrain memory and rebuild the starting line
+    if (typeof activeSegments !== 'undefined') {
+        for (const indexStr in activeSegments) {
+            delete activeSegments[indexStr];
+        }
+        for (let i = 0; i < 100; i++) { 
+            if (typeof spawnSegment === 'function') spawnSegment(i); 
+        }
+    }
+    
     startGame();
 });
 
@@ -79,11 +90,11 @@ Events.on(engine, 'beforeUpdate', () => {
     document.getElementById('distanceDisplay').innerText = distanceMeters + 'm';
     document.getElementById('scoreDisplay').innerText = window.gameCoins;
     
-    // 3. Update Fuel
-    if (keys.gas) {
-        window.gameFuel -= 0.05; // Deplete fuel while driving
+    // 3. Update Fuel (Safely check if keys exist yet)
+    if (typeof keys !== 'undefined' && keys.gas) {
+        window.gameFuel -= 0.05; 
     }
-    window.gameFuel -= 0.01; // Constant slow drain
+    window.gameFuel -= 0.01; 
     
     if (window.gameFuel <= 0) {
         window.gameFuel = 0;
@@ -131,5 +142,9 @@ Events.on(engine, 'collisionStart', (event) => {
     });
 });
 
-// Boot the game
-startGame();
+// ==========================================
+// 🚨 DELAY BOOT UNTIL EVERYTHING IS LOADED 🚨
+// ==========================================
+window.onload = () => {
+    startGame();
+};
