@@ -1,4 +1,4 @@
-// terrain.js - Flawless Camera Sync & HD Renderer
+// terrain.js - Perfect Camera Sync & HD Renderer
 
 const Bodies = Matter.Bodies;
 const World = Matter.World;
@@ -9,6 +9,7 @@ const baseHeight = window.innerHeight - 100;
 const activeSegments = {};
 let lastCarX = null; 
 
+// --- WORLD MATH ---
 function getWaveHeight(index) {
     if (index <= 20) return 0; 
     const i = index - 20;
@@ -34,6 +35,7 @@ function spawnSegment(index) {
 
     const parts = [];
 
+    // Invisible Physics Ground
     const chunk = Bodies.rectangle(midX, midY + 200, distance + 15, 400, { 
         isStatic: true, angle: angle, friction: 0.9, label: 'ground', render: { visible: false } 
     });
@@ -57,6 +59,7 @@ function removeSegment(index) {
     delete activeSegments[index];
 }
 
+// Pre-build starting area
 for (let i = 0; i < 100; i++) { spawnSegment(i); }
 
 Matter.Events.on(engine, 'beforeUpdate', () => {
@@ -79,59 +82,60 @@ Matter.Events.on(engine, 'beforeUpdate', () => {
 });
 
 // ==========================================
-// 🎨 MANUAL OVERRIDE MASTER RENDERER 🎨
+// 🎨 THE "WORLD SPACE" RENDERER 🎨
 // ==========================================
 Matter.Events.on(render, 'beforeRender', function() {
     const ctx = render.context;
     if (!render.bounds) return; 
 
+    // Find exactly where the camera is currently looking
     const cameraX = render.bounds.min.x; 
     const cameraY = render.bounds.min.y;
-    const w = render.canvas.width; 
-    const h = render.canvas.height;
+    const w = render.bounds.max.x - render.bounds.min.x; 
+    const h = render.bounds.max.y - render.bounds.min.y;
 
-    // 1. CLEAR SCREEN & DRAW SKY (Locked to screen coordinates)
-    ctx.clearRect(0, 0, w, h);
-    const gradient = ctx.createLinearGradient(0, 0, 0, h);
+    // 1. CLEAR SCREEN & DRAW SKY 
+    // We draw the sky exactly matching the camera bounds so it acts as our screen wipe
+    const gradient = ctx.createLinearGradient(0, cameraY, 0, cameraY + h);
     gradient.addColorStop(0, '#2b90d9'); 
     gradient.addColorStop(1, '#8bd3fb'); 
     ctx.fillStyle = gradient; 
-    ctx.fillRect(0, 0, w, h);
+    ctx.fillRect(cameraX, cameraY, w, h);
 
-    // 2. APPLY CAMERA FOR MOUNTAINS & GRASS
-    ctx.save(); 
-    ctx.translate(-cameraX, -cameraY);
-
+    // 2. PARALLAX MOUNTAINS
     function drawParallaxLayer(speed, color, heightOffset, zoom) {
         ctx.beginPath(); 
         ctx.moveTo(cameraX, cameraY + h); 
-        const parallaxX = cameraX * speed; 
+        
         for (let x = 0; x <= w + 50; x += 50) {
             const worldX = cameraX + x;
-            const mathX = worldX - parallaxX;
+            // The Parallax Math: We multiply worldX by a fraction to slow the waves down!
+            const mathX = worldX * speed; 
             const y = Math.sin(mathX * zoom) * 120 + Math.sin(mathX * zoom * 0.5) * 60;
             ctx.lineTo(worldX, cameraY + (h / 2) + heightOffset + y);
         }
+        
         ctx.lineTo(cameraX + w, cameraY + h); 
         ctx.fillStyle = color; 
         ctx.fill();
     }
 
-    drawParallaxLayer(0.9, '#5d8ba6', -50, 0.003); 
-    drawParallaxLayer(0.6, '#499a7b', 80, 0.006);  
+    drawParallaxLayer(0.2, '#5d8ba6', -50, 0.003); // Distant Mountains
+    drawParallaxLayer(0.5, '#499a7b', 80, 0.006);  // Closer Foothills
 
+    // 3. HD GRASS & DIRT
     const indices = Object.keys(activeSegments).map(Number).sort((a,b) => a - b);
     if (indices.length > 0) {
         const minIndex = indices[0]; 
         const maxIndex = indices[indices.length - 1];
 
-        // Dirt Base
+        // Dirt Base Fill
         ctx.beginPath();
-        ctx.moveTo(minIndex * segmentWidth, window.innerHeight + 1500); 
+        ctx.moveTo(minIndex * segmentWidth, cameraY + h + 1000); 
         for (let i = minIndex; i <= maxIndex; i++) {
             ctx.lineTo(i * segmentWidth, baseHeight + getWaveHeight(i)); 
         }
-        ctx.lineTo(maxIndex * segmentWidth, window.innerHeight + 1500); 
+        ctx.lineTo(maxIndex * segmentWidth, cameraY + h + 1000); 
         ctx.fillStyle = '#6D4C41'; 
         ctx.fill(); 
 
@@ -154,6 +158,4 @@ Matter.Events.on(render, 'beforeRender', function() {
         ctx.strokeStyle = '#81C784'; 
         ctx.stroke(); 
     }
-
-    ctx.restore(); 
 });
