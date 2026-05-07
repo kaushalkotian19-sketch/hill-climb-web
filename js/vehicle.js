@@ -6,22 +6,22 @@ const VehicleRender = Matter.Render;
 class Vehicle {
     constructor(startX, startY, vehicleType) {
         
-        // --- 1. RECALIBRATED STATS (ULTRA-STIFF SHOCKS) ---
+        // --- 1. RECALIBRATED STATS ---
         const stats = {
             jeep: {
-                width: 170, height: 30, weight: 0.002, 
-                wheelSize: 22, wheelGrip: 1.0,         
-                // CHANGED: 0.95 is extremely stiff, preventing the car from collapsing!
-                suspensionStiffness: 0.95, suspensionDamping: 0.1, 
-                power: 0.12, 
+                width: 170, height: 30, 
+                weight: 0.0005, // SUPER LIGHTWEIGHT BODY!
+                wheelSize: 22, wheelGrip: 1.2,         
+                suspensionStiffness: 0.9, suspensionDamping: 0.1, 
+                power: 0.18, // Boosted power to move the heavy tires
                 imageScale: 0.14, 
                 wheelScale: 0.045
             },
             monster_truck: {
-                width: 200, height: 40, weight: 0.005, 
-                wheelSize: 35, wheelGrip: 1.2,         
+                width: 200, height: 40, weight: 0.001, 
+                wheelSize: 35, wheelGrip: 1.5,         
                 suspensionStiffness: 0.95, suspensionDamping: 0.15, 
-                power: 0.15,
+                power: 0.25,
                 imageScale: 0.18, 
                 wheelScale: 0.06
             }
@@ -36,6 +36,7 @@ class Vehicle {
         this.chassis = Matter.Bodies.rectangle(startX, startY, this.config.width, this.config.height, { 
             collisionFilter: { group: carGroup }, 
             density: this.config.weight, 
+            chamfer: { radius: 10 }, // ROUNDS THE CORNERS SO IT GLIDES OVER DIRT!
             render: { 
                 sprite: { 
                     texture: 'assets/chassis.png', 
@@ -45,20 +46,23 @@ class Vehicle {
             } 
         });
 
-        // The Driver's Head (Invisible hitbox for crashes)
-        this.head = Matter.Bodies.circle(startX, startY - 30, 15, {
+        // The Driver's Head - Shrunk and moved higher for safety
+        this.head = Matter.Bodies.circle(startX, startY - 40, 10, {
             collisionFilter: { group: carGroup }, 
             density: 0.001, label: 'head', render: { fillStyle: 'transparent' } 
         });
 
         const neck = Constraint.create({
             bodyA: this.chassis, pointA: { x: 0, y: -this.config.height / 2 }, 
-            bodyB: this.head, pointB: { x: 0, y: 0 }, stiffness: 1, length: 20, render: { visible: false } 
+            bodyB: this.head, pointB: { x: 0, y: 0 }, stiffness: 1, length: 25, render: { visible: false } 
         });
 
         // --- 3. BUILD THE WHEELS ---
         const wheelOptions = {
-            collisionFilter: { group: carGroup }, friction: this.config.wheelGrip, restitution: 0.1, 
+            collisionFilter: { group: carGroup }, 
+            friction: this.config.wheelGrip, 
+            density: 0.05, // HEAVY WHEELS for a low center of gravity
+            restitution: 0.1, 
             render: { 
                 sprite: { 
                     texture: 'assets/wheel.png', 
@@ -69,7 +73,7 @@ class Vehicle {
         };
 
         const wheelOffsetX = 65; 
-        const wheelOffsetY = 30; 
+        const wheelOffsetY = 40; // Pushed down for maximum ground clearance
 
         this.wheelA = Matter.Bodies.circle(startX - wheelOffsetX, startY + wheelOffsetY, this.config.wheelSize, wheelOptions); 
         this.wheelB = Matter.Bodies.circle(startX + wheelOffsetX, startY + wheelOffsetY, this.config.wheelSize, wheelOptions); 
@@ -80,7 +84,7 @@ class Vehicle {
             pointA: { x: -wheelOffsetX, y: 15 }, 
             bodyB: this.wheelA, 
             stiffness: this.config.suspensionStiffness, damping: this.config.suspensionDamping,   
-            length: 20, 
+            length: 30, // Longer spring to keep chassis far above the wheels
             render: { visible: false } 
         });
 
@@ -89,7 +93,7 @@ class Vehicle {
             pointA: { x: wheelOffsetX, y: 15 },
             bodyB: this.wheelB, 
             stiffness: this.config.suspensionStiffness, damping: this.config.suspensionDamping,
-            length: 20, 
+            length: 30, 
             render: { visible: false } 
         });
 
