@@ -6,21 +6,20 @@ const VehicleRender = Matter.Render;
 class Vehicle {
     constructor(startX, startY, vehicleType) {
         
-        // --- 1. RECALIBRATED STATS ---
+        // --- 1. PERFECTED GAME PHYSICS ---
         const stats = {
             jeep: {
-                width: 170, height: 30, 
-                weight: 0.0005, // SUPER LIGHTWEIGHT BODY!
-                wheelSize: 22, wheelGrip: 1.2,         
-                suspensionStiffness: 0.9, suspensionDamping: 0.1, 
-                power: 0.18, // Boosted power to move the heavy tires
+                width: 160, height: 30, weight: 0.002, 
+                wheelSize: 22, wheelGrip: 0.9,         
+                suspensionStiffness: 0.2, suspensionDamping: 0.05, // Soft bouncy shocks
+                power: 0.15, // Stronger engine to climb hills easily
                 imageScale: 0.14, 
                 wheelScale: 0.045
             },
             monster_truck: {
-                width: 200, height: 40, weight: 0.001, 
-                wheelSize: 35, wheelGrip: 1.5,         
-                suspensionStiffness: 0.95, suspensionDamping: 0.15, 
+                width: 190, height: 40, weight: 0.004, 
+                wheelSize: 35, wheelGrip: 1.2,         
+                suspensionStiffness: 0.3, suspensionDamping: 0.08, 
                 power: 0.25,
                 imageScale: 0.18, 
                 wheelScale: 0.06
@@ -32,11 +31,11 @@ class Vehicle {
 
         const carGroup = Matter.Body.nextGroup(true);
 
-        // --- 2. BUILD THE CHASSIS ---
+        // --- 2. THE CHASSIS (WITH SLED CORNERS) ---
         this.chassis = Matter.Bodies.rectangle(startX, startY, this.config.width, this.config.height, { 
             collisionFilter: { group: carGroup }, 
             density: this.config.weight, 
-            chamfer: { radius: 10 }, // ROUNDS THE CORNERS SO IT GLIDES OVER DIRT!
+            chamfer: { radius: 15 }, // HIGHLY ROUNDED CORNERS - Slides right over dirt!
             render: { 
                 sprite: { 
                     texture: 'assets/chassis.png', 
@@ -46,22 +45,22 @@ class Vehicle {
             } 
         });
 
-        // The Driver's Head - Shrunk and moved higher for safety
-        this.head = Matter.Bodies.circle(startX, startY - 40, 10, {
+        // The Driver's Head 
+        this.head = Matter.Bodies.circle(startX, startY - 35, 12, {
             collisionFilter: { group: carGroup }, 
             density: 0.001, label: 'head', render: { fillStyle: 'transparent' } 
         });
 
         const neck = Constraint.create({
             bodyA: this.chassis, pointA: { x: 0, y: -this.config.height / 2 }, 
-            bodyB: this.head, pointB: { x: 0, y: 0 }, stiffness: 1, length: 25, render: { visible: false } 
+            bodyB: this.head, pointB: { x: 0, y: 0 }, stiffness: 1, length: 20, render: { visible: false } 
         });
 
-        // --- 3. BUILD THE WHEELS ---
+        // --- 3. WHEEL PLACEMENT ---
         const wheelOptions = {
             collisionFilter: { group: carGroup }, 
             friction: this.config.wheelGrip, 
-            density: 0.05, // HEAVY WHEELS for a low center of gravity
+            density: 0.02, // Heavy tires keep the car upright
             restitution: 0.1, 
             render: { 
                 sprite: { 
@@ -72,28 +71,32 @@ class Vehicle {
             }  
         };
 
-        const wheelOffsetX = 65; 
-        const wheelOffsetY = 40; // Pushed down for maximum ground clearance
+        const wheelOffsetX = 60; 
+        const wheelOffsetY = 35; // This drops the wheels perfectly below the car
 
         this.wheelA = Matter.Bodies.circle(startX - wheelOffsetX, startY + wheelOffsetY, this.config.wheelSize, wheelOptions); 
         this.wheelB = Matter.Bodies.circle(startX + wheelOffsetX, startY + wheelOffsetY, this.config.wheelSize, wheelOptions); 
 
-        // --- 4. BUILD THE SUSPENSION ---
+        // --- 4. ZERO-LENGTH SUSPENSION (THE MAGIC FIX) ---
+        // By setting length to 0, the wheel CANNOT swing forward/backward. 
+        // It must bounce strictly on the anchor point.
         const axelA = Constraint.create({
             bodyA: this.chassis, 
-            pointA: { x: -wheelOffsetX, y: 15 }, 
+            pointA: { x: -wheelOffsetX, y: wheelOffsetY }, // Anchored far below the car
             bodyB: this.wheelA, 
-            stiffness: this.config.suspensionStiffness, damping: this.config.suspensionDamping,   
-            length: 30, // Longer spring to keep chassis far above the wheels
+            stiffness: this.config.suspensionStiffness, 
+            damping: this.config.suspensionDamping,   
+            length: 0, // NO PENDULUM EFFECT
             render: { visible: false } 
         });
 
         const axelB = Constraint.create({
             bodyA: this.chassis, 
-            pointA: { x: wheelOffsetX, y: 15 },
+            pointA: { x: wheelOffsetX, y: wheelOffsetY }, // Anchored far below the car
             bodyB: this.wheelB, 
-            stiffness: this.config.suspensionStiffness, damping: this.config.suspensionDamping,
-            length: 30, 
+            stiffness: this.config.suspensionStiffness, 
+            damping: this.config.suspensionDamping,
+            length: 0, // NO PENDULUM EFFECT
             render: { visible: false } 
         });
 
@@ -109,48 +112,4 @@ class Vehicle {
     }
 }
 
-// ==========================================
-// 2. WAIT FOR MENU 
-// ==========================================
-window.playerCar = null;
-
-// ==========================================
-// 3. CONTROLS & GAME LOOP
-// ==========================================
-const keys = { gas: false, brake: false };
-
-window.addEventListener('keydown', (event) => {
-    if (event.key === 'ArrowRight' || event.key === 'd') keys.gas = true;
-    if (event.key === 'ArrowLeft' || event.key === 'a') keys.brake = true;
-});
-
-window.addEventListener('keyup', (event) => {
-    if (event.key === 'ArrowRight' || event.key === 'd') keys.gas = false;
-    if (event.key === 'ArrowLeft' || event.key === 'a') keys.brake = false;
-});
-
-const btnGas = document.getElementById('btn-gas');
-const btnBrake = document.getElementById('btn-brake');
-
-btnGas.addEventListener('touchstart', (e) => { e.preventDefault(); keys.gas = true; });
-btnGas.addEventListener('touchend', (e) => { e.preventDefault(); keys.gas = false; });
-btnGas.addEventListener('mousedown', (e) => { keys.gas = true; }); 
-btnGas.addEventListener('mouseup', (e) => { keys.gas = false; });
-
-btnBrake.addEventListener('touchstart', (e) => { e.preventDefault(); keys.brake = true; });
-btnBrake.addEventListener('touchend', (e) => { e.preventDefault(); keys.brake = false; });
-btnBrake.addEventListener('mousedown', (e) => { keys.brake = true; });
-btnBrake.addEventListener('mouseup', (e) => { keys.brake = false; });
-
-Matter.Events.on(engine, 'beforeUpdate', () => {
-    if (!window.playerCar) return; 
-
-    if (window.gameFuel > 0 && !window.isGameOver) {
-        window.playerCar.drive(keys); 
-    }
-
-    VehicleRender.lookAt(render, {
-        min: { x: window.playerCar.chassis.position.x - window.innerWidth / 2, y: window.playerCar.chassis.position.y - window.innerHeight / 2 + 100 },
-        max: { x: window.playerCar.chassis.position.x + window.innerWidth / 2, y: window.playerCar.chassis.position.y + window.innerHeight / 2 + 100 }
-    });
-});
+// ... (Keep all your existing button listeners and engine code below this!) ...
