@@ -1,4 +1,4 @@
-// terrain.js - Bulletproof Infinite Generation
+// terrain.js - Bulletproof Infinite Generation & HD Renderer
 
 const Bodies = Matter.Bodies;
 const World = Matter.World;
@@ -7,19 +7,22 @@ const segmentWidth = 40;
 const baseHeight = window.innerHeight - 100;
 
 const activeSegments = {};
-let lastCarX = null; // Used to detect when you click "Try Again"
+let lastCarX = null; 
 
-// --- THE 3-TIER WAVE MATH ---
+// --- THE ORGANIC WAVE MATH ---
 function getWaveHeight(index) {
     if (index <= 20) return 0; // The flat starting runway
     
     const i = index - 20;
     
-    const mountain = Math.sin(i * 0.015) * 300; 
-    const hill = Math.sin(i * 0.08) * 80; 
-    const bump = Math.sin(i * 0.35) * 15; 
+    const mountain1 = Math.sin(i * 0.011) * 200; 
+    const mountain2 = Math.sin(i * 0.017) * 150; 
+    const macro = mountain1 + mountain2;
     
-    return mountain + hill + bump;
+    const hill = Math.sin(i * 0.053) * 70; 
+    const bump = Math.sin(i * 0.31) * Math.sin(i * 0.47) * 25; 
+    
+    return macro + hill + bump;
 }
 
 // --- WORLD BUILDER ---
@@ -38,7 +41,7 @@ function spawnSegment(index) {
 
     const parts = [];
 
-    // The Dirt Block
+    // The Invisible Dirt Block
     const chunk = Bodies.rectangle(
         midX, midY + 200, distance + 15, 400,
         { 
@@ -46,7 +49,7 @@ function spawnSegment(index) {
             angle: angle, 
             friction: 0.9, 
             label: 'ground', 
-            render: { fillStyle: '#5C4033' } 
+            render: { visible: false } // Hidden so our custom renderer can draw HD grass!
         }
     );
     parts.push(chunk);
@@ -69,28 +72,20 @@ function spawnSegment(index) {
         parts.push(fuelCan);
     }
 
-    // Log it into our database
     activeSegments[index] = parts;
-    
-    // Safely add each piece to the world
-    for (let j = 0; j < parts.length; j++) {
-        World.add(engine.world, parts[j]);
-    }
+    for (let j = 0; j < parts.length; j++) { World.add(engine.world, parts[j]); }
 }
 
 // --- WORLD DESTROYER ---
 function removeSegment(index) {
     if (!activeSegments[index]) return;
-    
     const parts = activeSegments[index];
-    
-    // Safely remove each piece from the world
-    for (let j = 0; j < parts.length; j++) {
-        World.remove(engine.world, parts[j]);
-    }
-    
+    for (let j = 0; j < parts.length; j++) { World.remove(engine.world, parts[j]); }
     delete activeSegments[index];
 }
+
+// Pre-build start area
+for (let i = 0; i < 100; i++) { spawnSegment(i); }
 
 // --- THE INFINITE LOOP ---
 Matter.Events.on(engine, 'beforeUpdate', () => {
@@ -98,35 +93,106 @@ Matter.Events.on(engine, 'beforeUpdate', () => {
 
     const carX = window.playerCar.chassis.position.x;
     
-    // ==========================================
-    // 🚨 RESTART DETECTOR 🚨
-    // If the car suddenly teleports backwards to the start line, 
-    // we know you clicked "Try Again". We clear our memory to rebuild!
-    // ==========================================
+    // Restart Detector
     if (lastCarX !== null && carX < lastCarX - 500) {
-        for (const indexStr in activeSegments) {
-            delete activeSegments[indexStr]; 
-        }
+        for (const indexStr in activeSegments) { delete activeSegments[indexStr]; }
     }
     lastCarX = carX;
 
     const currentIndex = Math.floor(carX / segmentWidth);
-
     const renderFront = 60; 
     const renderBack = 20;  
 
-    // 1. Build the new track in front of you
     for (let i = currentIndex - renderBack; i <= currentIndex + renderFront; i++) {
-        if (i >= 0 && !activeSegments[i]) {
-            spawnSegment(i);
-        }
+        if (i >= 0 && !activeSegments[i]) spawnSegment(i);
     }
 
-    // 2. Delete the old track way behind you to save phone battery
     for (const indexStr in activeSegments) {
         const i = parseInt(indexStr);
-        if (i < currentIndex - renderBack || i > currentIndex + renderFront + 5) {
-            removeSegment(i);
-        }
+        if (i < currentIndex - renderBack || i > currentIndex + renderFront + 5) removeSegment(i);
     }
+});
+
+// ==========================================
+// 🌤️ DYNAMIC PARALLAX BACKGROUND 🌤️
+// ==========================================
+Matter.Events.on(render, 'beforeRender', function() {
+    const ctx = render.context;
+    const bounds = render.bounds;
+    
+    const cameraX = bounds.min.x;
+    const cameraY = bounds.min.y;
+    const w = bounds.max.x - bounds.min.x;
+    const h = bounds.max.y - bounds.min.y;
+
+    const gradient = ctx.createLinearGradient(0, cameraY, 0, cameraY + h);
+    gradient.addColorStop(0, '#2b90d9'); 
+    gradient.addColorStop(1, '#8bd3fb'); 
+    ctx.fillStyle = gradient;
+    ctx.fillRect(cameraX, cameraY, w, h);
+
+    function drawParallaxLayer(speed, color, heightOffset, zoom) {
+        ctx.beginPath();
+        ctx.moveTo(cameraX, cameraY + h); 
+        
+        const parallaxX = cameraX * speed; 
+        
+        for (let x = 0; x <= w + 50; x += 50) {
+            const worldX = cameraX + x;
+            const mathX = worldX - parallaxX;
+            const y = Math.sin(mathX * zoom) * 120 + Math.sin(mathX * zoom * 0.5) * 60;
+            ctx.lineTo(worldX, cameraY + (h / 2) + heightOffset + y);
+        }
+        
+        ctx.lineTo(cameraX + w, cameraY + h); 
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+
+    drawParallaxLayer(0.9, '#5d8ba6', -50, 0.003); // Distant Mountains
+    drawParallaxLayer(0.6, '#499a7b', 80, 0.006);  // Foothills
+});
+
+// ==========================================
+// 🎨 CUSTOM HD TERRAIN RENDERER 🎨
+// ==========================================
+Matter.Events.on(render, 'afterRender', function() {
+    const ctx = render.context;
+    
+    const indices = Object.keys(activeSegments).map(Number).sort((a,b) => a - b);
+    if (indices.length === 0) return;
+
+    const minIndex = indices[0];
+    const maxIndex = indices[indices.length - 1];
+
+    // DRAW DIRT
+    ctx.beginPath();
+    ctx.moveTo(minIndex * segmentWidth, window.innerHeight + 1500); 
+    for (let i = minIndex; i <= maxIndex; i++) {
+        const x = i * segmentWidth;
+        const y = baseHeight + getWaveHeight(i);
+        ctx.lineTo(x, y); 
+    }
+    ctx.lineTo(maxIndex * segmentWidth, window.innerHeight + 1500); 
+    ctx.fillStyle = '#6D4C41'; 
+    ctx.fill();
+
+    // DRAW GRASS BASE
+    ctx.beginPath();
+    for (let i = minIndex; i <= maxIndex; i++) {
+        const x = i * segmentWidth;
+        const y = baseHeight + getWaveHeight(i);
+        if (i === minIndex) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.lineWidth = 22;           
+    ctx.strokeStyle = '#43A047';  
+    ctx.lineJoin = 'round';       
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    
+    // DRAW GRASS HIGHLIGHT
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = '#81C784'; 
+    ctx.stroke();
 });
