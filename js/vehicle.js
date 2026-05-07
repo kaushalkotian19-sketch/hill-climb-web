@@ -3,110 +3,97 @@
 const Constraint = Matter.Constraint;
 const VehicleRender = Matter.Render; 
 
-// 1. THE BLUEPRINT (JavaScript Class)
 class Vehicle {
     constructor(startX, startY, vehicleType) {
         
-        // --- THE GARAGE (Vehicle Stats Database) ---
+        // --- 1. RECALIBRATED STATS ---
+        // Shrunk the width/height of the invisible hitboxes so they don't drag
         const stats = {
             jeep: {
-                width: 200, height: 50, weight: 0.002, 
-                wheelSize: 25, wheelGrip: 1.0,         
-                suspensionStiffness: 0.12, suspensionDamping: 0.03, // Bouncier!
-                power: 0.12 // Faster!
+                width: 160, height: 30, weight: 0.002, 
+                wheelSize: 22, wheelGrip: 1.0,         
+                suspensionStiffness: 0.12, suspensionDamping: 0.03,
+                power: 0.12,
+                imageScale: 0.15, // Shrunk the image to match the smaller hitbox
+                wheelScale: 0.035
             },
             monster_truck: {
-                width: 200, height: 40, weight: 0.005, 
-                wheelSize: 45, wheelGrip: 1.2,         
+                width: 180, height: 40, weight: 0.005, 
+                wheelSize: 35, wheelGrip: 1.2,         
                 suspensionStiffness: 0.2, suspensionDamping: 0.1, 
-                power: 0.15
+                power: 0.15,
+                imageScale: 0.18, 
+                wheelScale: 0.06
             }
         };
         
         this.config = stats[vehicleType] || stats.jeep;
         this.enginePower = this.config.power;
 
-        // --- BUILD THE PHYSICAL PARTS ---
         const carGroup = Matter.Body.nextGroup(true);
 
-        // The Chassis (Graphical)
+        // --- 2. BUILD THE CHASSIS ---
         this.chassis = Matter.Bodies.rectangle(startX, startY, this.config.width, this.config.height, { 
             collisionFilter: { group: carGroup }, 
             density: this.config.weight, 
             render: { 
                 sprite: { 
                     texture: 'assets/chassis.png', 
-                    xScale: 0.22, 
-                    yScale: 0.22 
+                    xScale: this.config.imageScale, 
+                    yScale: this.config.imageScale 
                 } 
             } 
         });
 
-        // The Driver's Head & Neck (Invisible hitbox for crashes)
+        // The Driver's Head (Invisible hitbox for crashes)
         this.head = Matter.Bodies.circle(startX, startY - 30, 15, {
             collisionFilter: { group: carGroup }, 
-            density: 0.001, 
-            label: 'head', 
-            render: { fillStyle: 'transparent' } 
+            density: 0.001, label: 'head', render: { fillStyle: 'transparent' } 
         });
 
         const neck = Constraint.create({
-            bodyA: this.chassis, 
-            pointA: { x: 0, y: -this.config.height / 2 }, 
-            bodyB: this.head, 
-            pointB: { x: 0, y: 0 }, 
-            stiffness: 1, 
-            length: 20, 
-            render: { visible: false } 
+            bodyA: this.chassis, pointA: { x: 0, y: -this.config.height / 2 }, 
+            bodyB: this.head, pointB: { x: 0, y: 0 }, stiffness: 1, length: 20, render: { visible: false } 
         });
 
-        // The Wheels (Graphical)
+        // --- 3. BUILD THE WHEELS (FIXED ALIGNMENT) ---
         const wheelOptions = {
-            collisionFilter: { group: carGroup }, 
-            friction: this.config.wheelGrip, 
-            restitution: 0.1, 
+            collisionFilter: { group: carGroup }, friction: this.config.wheelGrip, restitution: 0.1, 
             render: { 
                 sprite: { 
                     texture: 'assets/wheel.png', 
-                    xScale: 0.045, 
-                    yScale: 0.045 
+                    xScale: this.config.wheelScale, 
+                    yScale: this.config.wheelScale 
                 } 
             }  
         };
 
-        // ==========================================
-        // 🔧 TUNE YOUR WHEEL ALIGNMENT HERE 🔧
-        // ==========================================
+        // This pushes the wheels out toward the bumpers
+        const wheelOffset = this.config.width / 2 - 20; 
         
-        // Pushes the wheels wide enough to sit in the wheel wells
-        const wheelOffset = 90; 
-        
-        // Pushes the wheels all the way down to the bottom of the image
-        const wheelHeight = startY + 75; 
-
-        // ==========================================
+        // IMPORTANT FIX: This forces the wheels to spawn BELOW the chassis
+        const wheelHeight = startY + (this.config.height / 2) + this.config.wheelSize; 
 
         this.wheelA = Matter.Bodies.circle(startX - wheelOffset, wheelHeight, this.config.wheelSize, wheelOptions); 
         this.wheelB = Matter.Bodies.circle(startX + wheelOffset, wheelHeight, this.config.wheelSize, wheelOptions); 
 
-        // The Suspension
+        // --- 4. BUILD THE SUSPENSION ---
+        // Connects the wheels to the bottom edge of the chassis
         const axelA = Constraint.create({
             bodyA: this.chassis, 
-            pointA: { x: -wheelOffset, y: this.config.height / 2 }, 
+            pointA: { x: -wheelOffset, y: this.config.height / 2 }, // Attached to bottom
             bodyB: this.wheelA, 
-            stiffness: this.config.suspensionStiffness, 
-            damping: this.config.suspensionDamping,   
-            length: this.config.wheelSize + 10, 
+            stiffness: this.config.suspensionStiffness, damping: this.config.suspensionDamping,   
+            length: this.config.wheelSize + 5, // Gives the suspension room to bounce
             render: { visible: false } 
         });
 
         const axelB = Constraint.create({
             bodyA: this.chassis, 
-            pointA: { x: wheelOffset, y: this.config.height / 2 },
+            pointA: { x: wheelOffset, y: this.config.height / 2 }, // Attached to bottom
             bodyB: this.wheelB, 
-            stiffness: this.config.suspensionStiffness, 
-            damping: this.config.suspensionDamping,
-            length: this.config.wheelSize + 10, 
+            stiffness: this.config.suspensionStiffness, damping: this.config.suspensionDamping,
+            length: this.config.wheelSize + 5, 
             render: { visible: false } 
         });
 
@@ -116,18 +103,14 @@ class Vehicle {
         });
     }
 
-    // Make the car drive
     drive(keys) {
-        if (keys.gas) { 
-            this.wheelA.torque = this.enginePower; 
-            this.wheelB.torque = this.enginePower; 
-        }
-        if (keys.brake) { 
-            this.wheelA.torque = -this.enginePower; 
-            this.wheelB.torque = -this.enginePower; 
-        }
+        if (keys.gas) { this.wheelA.torque = this.enginePower; this.wheelB.torque = this.enginePower; }
+        if (keys.brake) { this.wheelA.torque = -this.enginePower; this.wheelB.torque = -this.enginePower; }
     }
 }
+
+// ... (Keep your existing Event Listeners below this line) ...
+
 
 // ==========================================
 // 2. WAIT FOR MENU (Don't spawn automatically)
