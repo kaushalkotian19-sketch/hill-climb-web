@@ -14,9 +14,9 @@ var render = Render.create({
         width: window.innerWidth,
         height: window.innerHeight,
         wireframes: false,
+        // 🚨 THE CRITICAL FIX: Clean transparent canvas every frame!
         background: 'transparent',
-        // 🚨 THE MASTER FIX: Revokes the engine's permission to erase our art!
-        clearBeforeRender: false 
+        clearBeforeRender: true 
     }
 });
 
